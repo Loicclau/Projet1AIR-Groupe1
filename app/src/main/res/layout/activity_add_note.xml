@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/et_titre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Titre de la note"
+        android:inputType="text"
+        android:textSize="18sp"/>
+
+    <EditText
+        android:id="@+id/et_contenu"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:hint="Contenu de la note..."
+        android:gravity="top"
+        android:inputType="textMultiLine"
+        android:layout_marginTop="12dp"/>
+
+    <Button
+        android:id="@+id/btn_camera"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📷 Prendre une photo"
+        android:layout_marginTop="8dp"/>
+
+    <ImageView
+        android:id="@+id/iv_photo"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        android:layout_marginTop="8dp"/>
+
+    <Button
+        android:id="@+id/btn_sauvegarder"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💾 Sauvegarder"
+        android:layout_marginTop="8dp"/>
+
+</LinearLayout>
