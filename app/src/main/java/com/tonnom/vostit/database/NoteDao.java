@@ -7,6 +7,7 @@ import androidx.room.Query;
 import androidx.room.Update;
 
 import com.tonnom.vostit.model.Note;
+import com.tonnom.vostit.model.NoteImage;
 
 import java.util.List;
 
@@ -14,7 +15,7 @@ import java.util.List;
 public interface NoteDao {
 
     @Insert
-    void insert(Note note);
+    long insert(Note note);
 
     @Update
     void update(Note note);
@@ -24,4 +25,16 @@ public interface NoteDao {
 
     @Query("SELECT * FROM notes ORDER BY id DESC")
     List<Note> getAllNotes();
+
+    @Query("SELECT * FROM notes WHERE subject = :subject ORDER BY id DESC")
+    List<Note> getNotesBySubject(String subject);
+
+    @Query("SELECT * FROM notes WHERE id = :id")
+    Note getNoteById(int id);
+
+    @Insert
+    void insertImage(NoteImage image);
+
+    @Query("SELECT * FROM note_images WHERE noteId = :noteId")
+    List<NoteImage> getImagesForNote(int noteId);
 }

@@ -32,6 +32,12 @@ public class SubjectSelectionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_subject_selection);
 
+        findViewById(R.id.btn_logout).setOnClickListener(v -> {
+            new SessionManager(this).logout();
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+        });
+
         RecyclerView recyclerView = findViewById(R.id.recycler_subjects);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(new SubjectAdapter(subjects, subject -> {

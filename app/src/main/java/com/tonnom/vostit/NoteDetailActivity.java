@@ -34,7 +34,8 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvImagesLabel = findViewById(R.id.tv_images_label);
         recyclerImages = findViewById(R.id.recycler_detail_images);
 
-        recyclerImages.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        recyclerImages.setLayoutManager(new LinearLayoutManager(this));
+        recyclerImages.setNestedScrollingEnabled(false);
 
         int noteId = getIntent().getIntExtra("NOTE_ID", -1);
         if (noteId != -1) {

@@ -40,6 +40,10 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         Note note = notes.get(position);
         holder.titre.setText(note.getTitre());
         holder.date.setText(note.getDate());
+        
+        String author = note.getAuthor();
+        holder.author.setText("Par : " + (author != null ? author : "Anonyme"));
+        
         holder.itemView.setOnClickListener(v -> listener.onNoteClick(note));
     }
 
@@ -52,12 +56,13 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
     }
 
     static class NoteViewHolder extends RecyclerView.ViewHolder {
-        TextView titre, date;
+        TextView titre, date, author;
 
         public NoteViewHolder(@NonNull View itemView) {
             super(itemView);
             titre = itemView.findViewById(R.id.tv_titre);
             date = itemView.findViewById(R.id.tv_date);
+            author = itemView.findViewById(R.id.tv_author);
         }
     }
 }

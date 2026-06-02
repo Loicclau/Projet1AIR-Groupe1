@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">VOST-IT</string>
+    <string name="empty_notes_title">Aucune note pour le moment !</string>
+    <string name="empty_notes_subtitle">Appuyez sur + pour en ajouter une</string>
+    <string name="desc_empty_icon">Icône info notes vides</string>
+    <string name="choose_subject">Choisissez votre matière</string>
+    <string name="attached_images">Images attachées</string>
+    <string name="desc_note_image">Image de la note</string>
+    <string name="login_title">Connexion</string>
+    <string name="signup_title">Inscription</string>
+    <string name="username_hint">Nom d\'utilisateur</string>
+    <string name="password_hint">Mot de passe</string>
+    <string name="logout">Déconnexion</string>
 </resources>

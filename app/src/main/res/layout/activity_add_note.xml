@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -28,22 +29,23 @@
         android:id="@+id/btn_camera"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="📷 Prendre une photo"
+        android:text="Prendre une photo"
         android:layout_marginTop="8dp"/>
 
-    <ImageView
-        android:id="@+id/iv_photo"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_add_photos"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:scaleType="centerCrop"
-        android:visibility="gone"
-        android:layout_marginTop="8dp"/>
+        android:layout_height="120dp"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        android:visibility="gone"/>
 
     <Button
         android:id="@+id/btn_sauvegarder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="💾 Sauvegarder"
+        android:text="Sauvegarder"
         android:layout_marginTop="8dp"/>
 
 </LinearLayout>

@@ -1,5 +1,6 @@
 package com.tonnom.vostit.adapter;
 
+import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,6 +10,7 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.tonnom.vostit.FullScreenImageActivity;
 import com.tonnom.vostit.R;
 import com.tonnom.vostit.model.NoteImage;
 
@@ -34,6 +36,12 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
         NoteImage image = images.get(position);
         if (image.getImagePath() != null) {
             holder.imageView.setImageBitmap(BitmapFactory.decodeFile(image.getImagePath()));
+            
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(v.getContext(), FullScreenImageActivity.class);
+                intent.putExtra("IMAGE_PATH", image.getImagePath());
+                v.getContext().startActivity(intent);
+            });
         }
     }
 

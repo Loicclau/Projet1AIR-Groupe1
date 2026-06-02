@@ -33,6 +33,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    // Force l'alignement de la mémoire sur 16 KB pour les fichiers .so
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
 }
 
 dependencies {
@@ -49,11 +56,11 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:2.6.1")
 
     // ML Kit OCR
-        implementation("com.google.mlkit:text-recognition:16.0.0")
+    implementation("com.google.mlkit:text-recognition:16.0.1")
 
     // iText PDF
-        implementation("com.itextpdf:itext7-core:7.2.5")
+    implementation("com.itextpdf:itext7-core:7.2.5")
 
     // OkHttp (appels API)
-        implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
