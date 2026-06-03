@@ -74,14 +74,4 @@
         android:text="@string/add_note"
         app:icon="@android:drawable/ic_input_add"/>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_pdf"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_margin="16dp"
-        android:src="@android:drawable/ic_menu_share"
-        android:contentDescription="@string/export_pdf"
-        app:fabSize="mini"/>
-
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

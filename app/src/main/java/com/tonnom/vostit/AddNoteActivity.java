@@ -26,10 +26,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.tonnom.vostit.database.NoteDatabase;
 import com.tonnom.vostit.model.Note;
 import com.tonnom.vostit.model.NoteImage;
-import com.tonnom.vostit.ocr.OcrHelper;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -61,47 +57,9 @@ public class AddNoteActivity extends AppCompatActivity {
                         photoPaths.add(currentPhotoPath);
                         photoAdapter.notifyDataSetChanged();
                         recyclerPhotos.setVisibility(View.VISIBLE);
-
-                        // OCR sur la photo (Charger le bitmap proprement)
-                        Bitmap fullSizeBitmap = loadLowResBitmap(currentPhotoPath, 1080);
-                        if (fullSizeBitmap != null) {
-                            OcrHelper.extractText(fullSizeBitmap, 0, jsonResponse -> {
-                                runOnUiThread(() -> {
-                                    try {
-                                        JSONObject json = new JSONObject(jsonResponse);
-                                        if ("success".equals(json.getString("status"))) {
-                                            String text = json.getString("text");
-                                            String current = etContenu.getText().toString();
-                                            etContenu.setText(current + "\n" + text);
-                                        } else if ("empty".equals(json.getString("status"))) {
-                                            Toast.makeText(this, "Aucun texte détecté", Toast.LENGTH_SHORT).show();
-                                        } else {
-                                            Toast.makeText(this, "Erreur OCR", Toast.LENGTH_SHORT).show();
-                                        }
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
-                                    }
-                                });
-                            });
-                        }
                     }
                 }
             });
-
-    private Bitmap loadLowResBitmap(String path, int targetWidth) {
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(path, options);
-        int srcWidth = options.outWidth;
-        int sampleSize = 1;
-        while (srcWidth / 2 >= targetWidth) {
-            srcWidth /= 2;
-            sampleSize *= 2;
-        }
-        options.inJustDecodeBounds = false;
-        options.inSampleSize = sampleSize;
-        return BitmapFactory.decodeFile(path, options);
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

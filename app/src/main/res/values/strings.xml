@@ -19,7 +19,6 @@
     <string name="has_account">Déjà un compte ? Se connecter</string>
     <string name="logout">Déconnexion</string>
     <string name="add_note">Ajouter une note</string>
-    <string name="export_pdf">Exporter en PDF</string>
     <string name="take_photo">Prendre une photo</string>
     <string name="save_note">Sauvegarder</string>
     <string name="note_title_hint">Titre de la note</string>

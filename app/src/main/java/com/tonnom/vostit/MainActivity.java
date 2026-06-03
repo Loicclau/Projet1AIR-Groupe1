@@ -10,13 +10,10 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.tonnom.vostit.adapter.NoteAdapter;
-import com.tonnom.vostit.ai.ClaudeHelper;
 import com.tonnom.vostit.database.NoteDatabase;
 import com.tonnom.vostit.model.Note;
-import com.tonnom.vostit.pdf.PdfGenerator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,9 +62,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        FloatingActionButton fabPdf = findViewById(R.id.fab_pdf);
-        fabPdf.setOnClickListener(v -> genererPdfAvecIA());
-
         chargerNotes();
     }
 
@@ -88,50 +82,6 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 adapter.setNotes(notes);
                 emptyStateLayout.setVisibility(notes.isEmpty() ? View.VISIBLE : View.GONE);
-            });
-        });
-    }
-
-    private void genererPdfAvecIA() {
-        executor.execute(() -> {
-            List<Note> notes = NoteDatabase.getInstance(this).noteDao().getAllNotes();
-
-            if (notes.isEmpty()) {
-                runOnUiThread(() -> Toast.makeText(this, "Aucune note à exporter", Toast.LENGTH_SHORT).show());
-                return;
-            }
-
-            StringBuilder sb = new StringBuilder();
-            for (Note note : notes) {
-                sb.append("## ").append(note.getTitre()).append("\n");
-                sb.append(note.getContenu()).append("\n\n");
-            }
-
-            runOnUiThread(() -> Toast.makeText(this, "Envoi à l'IA...", Toast.LENGTH_SHORT).show());
-
-            ClaudeHelper.organiserNotes(sb.toString(), new ClaudeHelper.ClaudeCallback() {
-                @Override
-                public void onResult(String result) {
-                    PdfGenerator.genererPdf(MainActivity.this, result, new PdfGenerator.PdfCallback() {
-                        @Override
-                        public void onSuccess(String filePath) {
-                            runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                                    "PDF généré : " + filePath, Toast.LENGTH_LONG).show());
-                        }
-
-                        @Override
-                        public void onError(String error) {
-                            runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                                    "Erreur PDF : " + error, Toast.LENGTH_LONG).show());
-                        }
-                    });
-                }
-
-                @Override
-                public void onError(String error) {
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                            "Erreur IA : " + error, Toast.LENGTH_LONG).show());
-                }
             });
         });
     }

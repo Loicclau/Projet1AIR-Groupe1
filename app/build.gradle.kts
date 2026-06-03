@@ -54,13 +54,4 @@ dependencies {
     // Room (SQLite)
     implementation("androidx.room:room-runtime:2.6.1")
     annotationProcessor("androidx.room:room-compiler:2.6.1")
-
-    // ML Kit OCR
-    implementation("com.google.mlkit:text-recognition:16.0.1")
-
-    // iText PDF
-    implementation("com.itextpdf:itext7-core:7.2.5")
-
-    // OkHttp (appels API)
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
