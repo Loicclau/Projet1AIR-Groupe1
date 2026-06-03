@@ -5,6 +5,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -33,6 +34,14 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvContenu = findViewById(R.id.tv_detail_contenu);
         tvImagesLabel = findViewById(R.id.tv_images_label);
         recyclerImages = findViewById(R.id.recycler_detail_images);
+
+        Toolbar toolbar = findViewById(R.id.toolbar_detail);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+        toolbar.setNavigationOnClickListener(v -> finish());
 
         recyclerImages.setLayoutManager(new LinearLayoutManager(this));
         recyclerImages.setNestedScrollingEnabled(false);

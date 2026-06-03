@@ -42,7 +42,7 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         holder.date.setText(note.getDate());
         
         String author = note.getAuthor();
-        holder.author.setText("Par : " + (author != null ? author : "Anonyme"));
+        holder.author.setText(author != null ? author : "Anonyme");
         
         holder.itemView.setOnClickListener(v -> listener.onNoteClick(note));
     }

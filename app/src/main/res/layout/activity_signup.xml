@@ -1,28 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="32dp"
-    android:background="?android:attr/windowBackground">
+    android:padding="24dp">
 
     <TextView
+        android:id="@+id/tv_signup_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Inscription"
         android:textSize="32sp"
-        android:textStyle="bold"
-        android:textColor="?android:attr/colorPrimary"
-        android:layout_marginBottom="32dp"/>
+        android:fontFamily="sans-serif-black"
+        android:textColor="?attr/colorPrimary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/tv_signup_subtitle"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/tv_signup_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/signup_community"
+        android:textSize="16sp"
+        android:alpha="0.7"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/tv_signup_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/til_signup_username" />
 
     <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/til_signup_username"
+        style="@style/ModernTextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Choisir un nom d'utilisateur"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        android:layout_marginTop="48dp"
+        android:hint="@string/username_hint"
+        app:startIconDrawable="@android:drawable/ic_menu_edit"
+        app:layout_constraintTop_toBottomOf="@+id/tv_signup_subtitle"
+        app:layout_constraintBottom_toTopOf="@+id/til_signup_password">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_signup_username"
@@ -32,12 +52,15 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/til_signup_password"
+        style="@style/ModernTextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="Créer un mot de passe"
+        android:hint="@string/password_hint"
         app:passwordToggleEnabled="true"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        app:startIconDrawable="@android:drawable/ic_lock_idle_lock"
+        app:layout_constraintTop_toBottomOf="@+id/til_signup_username"
+        app:layout_constraintBottom_toTopOf="@+id/btn_signup">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_signup_password"
@@ -48,20 +71,25 @@
 
     <Button
         android:id="@+id/btn_signup"
+        style="@style/ModernButton"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:layout_marginTop="24dp"
-        android:text="Créer mon compte"
-        android:padding="12dp"
-        app:cornerRadius="8dp"/>
+        android:text="@string/create_account"
+        android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@+id/til_signup_password"
+        app:layout_constraintBottom_toTopOf="@+id/tv_go_to_login" />
 
     <TextView
         android:id="@+id/tv_go_to_login"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Déjà un compte ? Se connecter"
-        android:textColor="?android:attr/colorPrimary"
-        android:textStyle="bold"/>
+        android:layout_marginTop="24dp"
+        android:text="@string/has_account"
+        android:textColor="?attr/colorPrimary"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@+id/btn_signup"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

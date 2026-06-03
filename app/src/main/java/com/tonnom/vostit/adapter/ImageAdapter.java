@@ -1,6 +1,7 @@
 package com.tonnom.vostit.adapter;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -35,7 +36,11 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         NoteImage image = images.get(position);
         if (image.getImagePath() != null) {
-            holder.imageView.setImageBitmap(BitmapFactory.decodeFile(image.getImagePath()));
+            // Utilisation de inSampleSize pour éviter les OutOfMemory tout en gardant une qualité correcte pour l'affichage
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = 2; 
+            Bitmap bitmap = BitmapFactory.decodeFile(image.getImagePath(), options);
+            holder.imageView.setImageBitmap(bitmap);
             
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(v.getContext(), FullScreenImageActivity.class);

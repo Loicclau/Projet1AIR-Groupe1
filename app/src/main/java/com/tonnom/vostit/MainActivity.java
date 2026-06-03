@@ -6,10 +6,12 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.tonnom.vostit.adapter.NoteAdapter;
 import com.tonnom.vostit.ai.ClaudeHelper;
 import com.tonnom.vostit.database.NoteDatabase;
@@ -37,8 +39,11 @@ public class MainActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
 
         selectedSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
-        if (selectedSubject != null) {
-            setTitle("Notes : " + selectedSubject);
+        
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null && selectedSubject != null) {
+            getSupportActionBar().setTitle(selectedSubject);
         }
 
         RecyclerView recycler = findViewById(R.id.recycler_notes);
@@ -53,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
 
         emptyStateLayout = findViewById(R.id.layout_empty_state);
 
-        FloatingActionButton fabAdd = findViewById(R.id.fab_add);
+        ExtendedFloatingActionButton fabAdd = findViewById(R.id.fab_add);
         fabAdd.setOnClickListener(v -> {
             Intent intent = new Intent(this, AddNoteActivity.class);
             intent.putExtra("SELECTED_SUBJECT", selectedSubject);

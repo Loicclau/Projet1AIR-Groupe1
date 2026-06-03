@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">VOST-IT</string>
+    <string name="app_slogan">Organisez vos notes intelligemment</string>
     <string name="empty_notes_title">Aucune note pour le moment !</string>
     <string name="empty_notes_subtitle">Appuyez sur + pour en ajouter une</string>
     <string name="desc_empty_icon">Icône info notes vides</string>
@@ -8,7 +9,19 @@
     <string name="desc_note_image">Image de la note</string>
     <string name="login_title">Connexion</string>
     <string name="signup_title">Inscription</string>
+    <string name="signup_community">Rejoignez la communauté VOST-IT</string>
     <string name="username_hint">Nom d\'utilisateur</string>
     <string name="password_hint">Mot de passe</string>
+    <string name="login_button">Se connecter</string>
+    <string name="signup_button">S\'inscrire</string>
+    <string name="create_account">Créer mon compte</string>
+    <string name="no_account">Pas encore de compte ? S\'inscrire</string>
+    <string name="has_account">Déjà un compte ? Se connecter</string>
     <string name="logout">Déconnexion</string>
+    <string name="add_note">Ajouter une note</string>
+    <string name="export_pdf">Exporter en PDF</string>
+    <string name="take_photo">Prendre une photo</string>
+    <string name="save_note">Sauvegarder</string>
+    <string name="note_title_hint">Titre de la note</string>
+    <string name="note_content_hint">Contenu de la note...</string>
 </resources>
