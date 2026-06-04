@@ -3,32 +3,38 @@
     <style name="Base.Theme.VOSTIT" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorSecondary">@color/secondary</item>
-        <item name="android:windowBackground">@color/background</item>
-        <item name="android:statusBarColor">@color/primary_variant</item>
+        <item name="android:windowBackground">@color/background_light</item>
+        <item name="colorSurface">@color/surface_light</item>
+        <item name="colorOnSurface">@color/on_surface_light</item>
+        <item name="colorOnSurfaceVariant">@color/on_surface_variant_light</item>
+        <item name="android:statusBarColor">@color/primary</item>
     </style>
 
     <style name="Theme.VOSTIT" parent="Base.Theme.VOSTIT" />
 
-    <!-- Style for rounded card views -->
+    <!-- Modern card style -->
     <style name="ModernCardView" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardCornerRadius">12dp</item>
+        <item name="cardCornerRadius">16dp</item>
         <item name="cardElevation">2dp</item>
         <item name="android:layout_margin">8dp</item>
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
     </style>
 
-    <!-- Style for rounded buttons -->
+    <!-- Modern button style -->
     <style name="ModernButton" parent="Widget.Material3.Button">
-        <item name="cornerRadius">8dp</item>
-        <item name="android:insetTop">0dp</item>
-        <item name="android:insetBottom">0dp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
-    <!-- Style for input fields -->
+    <!-- Modern input style -->
     <style name="ModernTextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusTopStart">8dp</item>
-        <item name="boxCornerRadiusTopEnd">8dp</item>
-        <item name="boxCornerRadiusBottomStart">8dp</item>
-        <item name="boxCornerRadiusBottomEnd">8dp</item>
-        <item name="android:layout_marginBottom">12dp</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeColor">?attr/colorPrimary</item>
     </style>
 </resources>

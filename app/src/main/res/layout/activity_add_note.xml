@@ -67,29 +67,44 @@
         android:layout_marginBottom="8dp"
         android:orientation="horizontal"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@+id/btn_camera"
+        app:layout_constraintBottom_toTopOf="@+id/ll_actions"
         app:layout_constraintTop_toBottomOf="@+id/til_note_content" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_camera"
-        style="@style/Widget.Material3.Button.OutlinedButton"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:id="@+id/ll_actions"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/take_photo"
-        app:icon="@android:drawable/ic_menu_camera"
-        android:layout_marginEnd="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btn_sauvegarder"/>
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_sauvegarder"
-        style="@style/ModernButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/save_note"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/btn_camera"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_camera"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Caméra"
+            app:icon="@android:drawable/ic_menu_camera"
+            android:layout_marginEnd="4dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_gallery"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Galerie"
+            app:icon="@android:drawable/ic_menu_gallery"
+            android:layout_marginEnd="4dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_sauvegarder"
+            style="@style/ModernButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:text="@string/save_note"/>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

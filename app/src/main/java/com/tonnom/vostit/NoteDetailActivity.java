@@ -3,7 +3,9 @@ package com.tonnom.vostit;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -14,6 +16,7 @@ import com.tonnom.vostit.database.NoteDatabase;
 import com.tonnom.vostit.model.Note;
 import com.tonnom.vostit.model.NoteImage;
 
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,7 +25,7 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private TextView tvTitre, tvDate, tvContenu, tvImagesLabel;
     private RecyclerView recyclerImages;
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +45,8 @@ public class NoteDetailActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
         toolbar.setNavigationOnClickListener(v -> finish());
+
+        findViewById(R.id.btn_delete_note).setOnClickListener(v -> confirmerSuppressionNote());
 
         recyclerImages.setLayoutManager(new LinearLayoutManager(this));
         recyclerImages.setNestedScrollingEnabled(false);
@@ -64,14 +69,62 @@ public class NoteDetailActivity extends AppCompatActivity {
                     tvTitre.setText(note.getTitre());
                     tvDate.setText(note.getDate());
                     tvContenu.setText(note.getContenu());
-                    setTitle(note.getTitre());
-
-                    if (!images.isEmpty()) {
+                    
+                    if (images.isEmpty()) {
+                        tvImagesLabel.setVisibility(View.GONE);
+                        recyclerImages.setVisibility(View.GONE);
+                    } else {
                         tvImagesLabel.setVisibility(View.VISIBLE);
-                        recyclerImages.setAdapter(new ImageAdapter(images));
+                        recyclerImages.setVisibility(View.VISIBLE);
+                        recyclerImages.setAdapter(new ImageAdapter(images, image -> confirmerSuppressionImage(image, noteId)));
                     }
                 }
             });
+        });
+    }
+
+    private void confirmerSuppressionNote() {
+        int noteId = getIntent().getIntExtra("NOTE_ID", -1);
+        new AlertDialog.Builder(this)
+                .setTitle("Supprimer la note")
+                .setMessage("Voulez-vous supprimer cette note et toutes ses images ?")
+                .setPositiveButton("Supprimer", (dialog, which) -> supprimerNote(noteId))
+                .setNegativeButton("Annuler", null)
+                .show();
+    }
+
+    private void supprimerNote(int noteId) {
+        executor.execute(() -> {
+            List<NoteImage> images = NoteDatabase.getInstance(this).noteDao().getImagesForNote(noteId);
+            for (NoteImage img : images) {
+                File file = new File(img.getImagePath());
+                if (file.exists()) file.delete();
+            }
+            NoteDatabase.getInstance(this).noteDao().deleteImagesForNote(noteId);
+            NoteDatabase.getInstance(this).noteDao().deleteNoteById(noteId);
+            
+            runOnUiThread(() -> {
+                Toast.makeText(this, "Note supprimée", Toast.LENGTH_SHORT).show();
+                finish();
+            });
+        });
+    }
+
+    private void confirmerSuppressionImage(NoteImage image, int noteId) {
+        new AlertDialog.Builder(this)
+                .setTitle("Supprimer l'image")
+                .setMessage("Voulez-vous supprimer cette image définitivement ?")
+                .setPositiveButton("Supprimer", (dialog, which) -> supprimerImage(image, noteId))
+                .setNegativeButton("Annuler", null)
+                .show();
+    }
+
+    private void supprimerImage(NoteImage image, int noteId) {
+        executor.execute(() -> {
+            NoteDatabase.getInstance(this).noteDao().deleteImage(image);
+            File file = new File(image.getImagePath());
+            if (file.exists()) file.delete();
+            chargerDetailNote(noteId);
         });
     }
 }

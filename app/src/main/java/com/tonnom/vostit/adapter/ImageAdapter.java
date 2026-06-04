@@ -20,9 +20,19 @@ import java.util.List;
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> {
 
     private final List<NoteImage> images;
+    private final OnImageLongClickListener longClickListener;
+
+    public interface OnImageLongClickListener {
+        void onImageLongClick(NoteImage image);
+    }
 
     public ImageAdapter(List<NoteImage> images) {
+        this(images, null);
+    }
+
+    public ImageAdapter(List<NoteImage> images, OnImageLongClickListener longClickListener) {
         this.images = images;
+        this.longClickListener = longClickListener;
     }
 
     @NonNull
@@ -36,7 +46,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         NoteImage image = images.get(position);
         if (image.getImagePath() != null) {
-            // Utilisation de inSampleSize pour éviter les OutOfMemory tout en gardant une qualité correcte pour l'affichage
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inSampleSize = 2; 
             Bitmap bitmap = BitmapFactory.decodeFile(image.getImagePath(), options);
@@ -47,6 +56,13 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
                 intent.putExtra("IMAGE_PATH", image.getImagePath());
                 v.getContext().startActivity(intent);
             });
+
+            if (longClickListener != null) {
+                holder.itemView.setOnLongClickListener(v -> {
+                    longClickListener.onImageLongClick(image);
+                    return true;
+                });
+            }
         }
     }
 

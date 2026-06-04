@@ -29,6 +29,7 @@ import com.tonnom.vostit.model.NoteImage;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -61,24 +62,34 @@ public class AddNoteActivity extends AppCompatActivity {
                 }
             });
 
+    private ActivityResultLauncher<Intent> galleryLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri selectedImage = result.getData().getData();
+                    if (selectedImage != null) {
+                        String path = copyUriToInternalStorage(selectedImage);
+                        if (path != null) {
+                            photoPaths.add(path);
+                            photoAdapter.notifyDataSetChanged();
+                            recyclerPhotos.setVisibility(View.VISIBLE);
+                        }
+                    }
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_note);
 
         sessionManager = new SessionManager(this);
-
         selectedSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
         
         Toolbar toolbar = findViewById(R.id.toolbar_add_note);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            if (selectedSubject != null) {
-                getSupportActionBar().setTitle("Nouveau : " + selectedSubject);
-            } else {
-                getSupportActionBar().setTitle("Nouvelle Note");
-            }
+            getSupportActionBar().setTitle(selectedSubject != null ? "Nouveau : " + selectedSubject : "Nouvelle Note");
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 
@@ -90,23 +101,34 @@ public class AddNoteActivity extends AppCompatActivity {
         recyclerPhotos.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         recyclerPhotos.setAdapter(photoAdapter);
 
-        Button btnCamera = findViewById(R.id.btn_camera);
-        Button btnSauvegarder = findViewById(R.id.btn_sauvegarder);
+        findViewById(R.id.btn_camera).setOnClickListener(v -> openCamera());
+        
+        // Ajout dynamique ou recherche du bouton galerie s'il existe dans le layout
+        View btnGallery = findViewById(R.id.btn_gallery);
+        if (btnGallery != null) {
+            btnGallery.setOnClickListener(v -> openGallery());
+        }
 
-        btnCamera.setOnClickListener(v -> {
-            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            File photoFile = createPhotoFile();
-            if (photoFile != null) {
-                currentPhotoPath = photoFile.getAbsolutePath();
-                currentPhotoUri = FileProvider.getUriForFile(this,
-                        getApplicationContext().getPackageName() + ".fileprovider",
-                        photoFile);
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, currentPhotoUri);
-                cameraLauncher.launch(intent);
-            }
-        });
+        findViewById(R.id.btn_sauvegarder).setOnClickListener(v -> sauvegarderNote());
+    }
 
-        btnSauvegarder.setOnClickListener(v -> sauvegarderNote());
+    private void openCamera() {
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File photoFile = createPhotoFile();
+        if (photoFile != null) {
+            currentPhotoPath = photoFile.getAbsolutePath();
+            currentPhotoUri = FileProvider.getUriForFile(this,
+                    getApplicationContext().getPackageName() + ".fileprovider",
+                    photoFile);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, currentPhotoUri);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            cameraLauncher.launch(intent);
+        }
+    }
+
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        galleryLauncher.launch(intent);
     }
 
     private File createPhotoFile() {
@@ -114,11 +136,18 @@ public class AddNoteActivity extends AppCompatActivity {
         return new File(getFilesDir(), fileName);
     }
 
-    private String saveBitmapToFile(Bitmap bitmap) {
-        String fileName = "IMG_" + UUID.randomUUID().toString() + ".jpg";
-        File file = new File(getFilesDir(), fileName);
-        try (FileOutputStream out = new FileOutputStream(file)) {
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+    private String copyUriToInternalStorage(Uri uri) {
+        try {
+            InputStream in = getContentResolver().openInputStream(uri);
+            File file = createPhotoFile();
+            FileOutputStream out = new FileOutputStream(file);
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
+            out.close();
+            in.close();
             return file.getAbsolutePath();
         } catch (Exception e) {
             e.printStackTrace();
@@ -145,13 +174,9 @@ public class AddNoteActivity extends AppCompatActivity {
 
         executor.execute(() -> {
             long noteId = NoteDatabase.getInstance(this).noteDao().insert(note);
-            
-            // Sauvegarder les liens vers les images
             for (String path : photoPaths) {
-                NoteImage noteImage = new NoteImage((int) noteId, path);
-                NoteDatabase.getInstance(this).noteDao().insertImage(noteImage);
+                NoteDatabase.getInstance(this).noteDao().insertImage(new NoteImage((int) noteId, path));
             }
-
             runOnUiThread(() -> {
                 Toast.makeText(this, "Note sauvegardée ✓", Toast.LENGTH_SHORT).show();
                 finish();
@@ -159,7 +184,7 @@ public class AddNoteActivity extends AppCompatActivity {
         });
     }
 
-    private static class PhotoPreviewAdapter extends RecyclerView.Adapter<PhotoPreviewAdapter.ViewHolder> {
+    private class PhotoPreviewAdapter extends RecyclerView.Adapter<PhotoPreviewAdapter.ViewHolder> {
         private List<String> paths;
 
         PhotoPreviewAdapter(List<String> paths) {
@@ -176,10 +201,13 @@ public class AddNoteActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             String path = paths.get(position);
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = 4; // Preview low res for list
-            Bitmap bitmap = BitmapFactory.decodeFile(path, options);
+            Bitmap bitmap = BitmapFactory.decodeFile(path, new BitmapFactory.Options() {{ inSampleSize = 4; }});
             holder.ivPreview.setImageBitmap(bitmap);
+            holder.btnRemove.setOnClickListener(v -> {
+                paths.remove(position);
+                notifyDataSetChanged();
+                if (paths.isEmpty()) recyclerPhotos.setVisibility(View.GONE);
+            });
         }
 
         @Override
@@ -187,11 +215,13 @@ public class AddNoteActivity extends AppCompatActivity {
             return paths.size();
         }
 
-        static class ViewHolder extends RecyclerView.ViewHolder {
+        class ViewHolder extends RecyclerView.ViewHolder {
             ImageView ivPreview;
+            View btnRemove;
             ViewHolder(View view) {
                 super(view);
                 ivPreview = view.findViewById(R.id.iv_preview);
+                btnRemove = view.findViewById(R.id.btn_remove_photo);
             }
         }
     }

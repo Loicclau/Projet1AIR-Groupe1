@@ -35,6 +35,15 @@ public interface NoteDao {
     @Insert
     void insertImage(NoteImage image);
 
+    @Delete
+    void deleteImage(NoteImage image);
+
+    @Query("DELETE FROM note_images WHERE noteId = :noteId")
+    void deleteImagesForNote(int noteId);
+
     @Query("SELECT * FROM note_images WHERE noteId = :noteId")
     List<NoteImage> getImagesForNote(int noteId);
+
+    @Query("DELETE FROM notes WHERE id = :noteId")
+    void deleteNoteById(int noteId);
 }

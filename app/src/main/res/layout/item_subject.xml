@@ -5,18 +5,35 @@
     style="@style/ModernCardView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:clickable="true"
-    android:focusable="true">
+    android:layout_marginHorizontal="0dp"
+    android:layout_marginVertical="6dp"
+    app:cardElevation="1dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#1A000000">
 
-    <TextView
-        android:id="@+id/tv_subject_name"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:padding="20dp"
-        android:text="Subject Name"
-        android:textSize="18sp"
-        android:fontFamily="sans-serif-medium"
-        android:gravity="center"
-        android:textColor="?attr/colorOnSurface"/>
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_subject_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="17sp"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="?attr/colorOnSurface" />
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_media_play"
+            app:tint="?attr/colorOnSurfaceVariant"
+            android:alpha="0.3" />
+
+    </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

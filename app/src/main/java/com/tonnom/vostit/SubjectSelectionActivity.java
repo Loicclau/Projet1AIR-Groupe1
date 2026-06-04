@@ -38,6 +38,10 @@ public class SubjectSelectionActivity extends AppCompatActivity {
             finish();
         });
 
+        findViewById(R.id.btn_view_syntheses).setOnClickListener(v -> {
+            startActivity(new Intent(this, SynthesisListActivity.class));
+        });
+
         RecyclerView recyclerView = findViewById(R.id.recycler_subjects);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(new SubjectAdapter(subjects, subject -> {

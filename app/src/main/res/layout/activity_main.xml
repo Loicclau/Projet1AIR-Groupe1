@@ -15,8 +15,9 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:titleTextColor="?attr/colorPrimary"
-            app:titleCentered="true" />
+            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:titleCentered="true"
+            app:titleTextColor="?attr/colorPrimary" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -73,5 +74,16 @@
         android:layout_margin="16dp"
         android:text="@string/add_note"
         app:icon="@android:drawable/ic_input_add"/>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_synthesize"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_menu_edit"
+        android:contentDescription="Synthèse du cours"
+        app:fabSize="normal"
+        app:backgroundTint="?attr/colorSecondary"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

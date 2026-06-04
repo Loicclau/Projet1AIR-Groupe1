@@ -1,0 +1,146 @@
+package com.tonnom.vostit;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.tonnom.vostit.database.NoteDatabase;
+import com.tonnom.vostit.model.Synthesis;
+import com.tonnom.vostit.utils.PdfExportHelper;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class SynthesisListActivity extends AppCompatActivity {
+
+    private SynthesisAdapter adapter;
+    private View emptyState;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_synthesis_list);
+
+        Toolbar toolbar = findViewById(R.id.toolbar_synthesis);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            toolbar.setNavigationOnClickListener(v -> finish());
+        }
+
+        RecyclerView recyclerView = findViewById(R.id.recycler_syntheses);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        
+        adapter = new SynthesisAdapter(new ArrayList<>(), this::showSynthesisDetails);
+        recyclerView.setAdapter(adapter);
+
+        emptyState = findViewById(R.id.layout_empty_syntheses);
+
+        loadSyntheses();
+    }
+
+    private void loadSyntheses() {
+        executor.execute(() -> {
+            List<Synthesis> list = NoteDatabase.getInstance(this).synthesisDao().getAllSyntheses();
+            runOnUiThread(() -> {
+                adapter.setData(list);
+                emptyState.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
+            });
+        });
+    }
+
+    private void showSynthesisDetails(Synthesis synthesis) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_synthesis, null);
+        TextView tvContent = dialogView.findViewById(R.id.tv_synthesis_content);
+        tvContent.setText(synthesis.getContent());
+
+        View btnDownload = dialogView.findViewById(R.id.btn_download_pdf);
+        btnDownload.setOnClickListener(v -> {
+            Toast.makeText(this, "Génération du PDF...", Toast.LENGTH_SHORT).show();
+            executor.execute(() -> {
+                PdfExportHelper.exportToPdf(this, "Synthèse " + synthesis.getSubject(), synthesis.getContent());
+            });
+        });
+
+        new AlertDialog.Builder(this)
+                .setTitle("Synthèse de " + synthesis.getSubject())
+                .setView(dialogView)
+                .setPositiveButton("Fermer", null)
+                .setNeutralButton("Supprimer", (dialog, which) -> {
+                    executor.execute(() -> {
+                        NoteDatabase.getInstance(this).synthesisDao().deleteById(synthesis.getId());
+                        loadSyntheses();
+                    });
+                })
+                .show();
+    }
+
+    private static class SynthesisAdapter extends RecyclerView.Adapter<SynthesisAdapter.ViewHolder> {
+        private final List<Synthesis> syntheses;
+        private final OnItemClickListener listener;
+        private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+
+        interface OnItemClickListener {
+            void onItemClick(Synthesis synthesis);
+        }
+
+        SynthesisAdapter(List<Synthesis> syntheses, OnItemClickListener listener) {
+            this.syntheses = syntheses;
+            this.listener = listener;
+        }
+
+        void setData(List<Synthesis> newList) {
+            this.syntheses.clear();
+            this.syntheses.addAll(newList);
+            notifyDataSetChanged();
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_synthesis, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            Synthesis s = syntheses.get(position);
+            holder.tvSubject.setText(s.getSubject());
+            holder.tvDate.setText(dateFormat.format(new Date(s.getTimestamp())));
+            holder.tvPreview.setText(s.getContent());
+            holder.itemView.setOnClickListener(v -> listener.onItemClick(s));
+        }
+
+        @Override
+        public int getItemCount() {
+            return syntheses.size();
+        }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tvSubject, tvDate, tvPreview;
+            ViewHolder(View view) {
+                super(view);
+                tvSubject = view.findViewById(R.id.tv_synthesis_subject);
+                tvDate = view.findViewById(R.id.tv_synthesis_date);
+                tvPreview = view.findViewById(R.id.tv_synthesis_preview);
+            }
+        }
+    }
+}
