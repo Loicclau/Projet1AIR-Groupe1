@@ -33,6 +33,20 @@ android {
         // Récupération de la clé depuis local.properties pour éviter de la commit
         val apiKey: String = localProperties.getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
+
+        // Firebase Security
+        val fbKey: String = localProperties.getProperty("FIREBASE_API_KEY") ?: "MISSING_KEY"
+        val fbAppId: String = localProperties.getProperty("FIREBASE_APP_ID") ?: "MISSING_ID"
+        val fbProjectId: String = localProperties.getProperty("FIREBASE_PROJECT_ID") ?: "vost-it"
+
+        buildConfigField("String", "FIREBASE_API_KEY", "\"$fbKey\"")
+        buildConfigField("String", "FIREBASE_APP_ID", "\"$fbAppId\"")
+        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"$fbProjectId\"")
+        
+        // Injection dans les ressources pour écraser les valeurs du google-services.json
+        resValue("string", "google_api_key", fbKey)
+        resValue("string", "google_app_id", fbAppId)
+        resValue("string", "project_id", fbProjectId)
     }
 
     buildFeatures {
