@@ -4,85 +4,111 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardCornerRadius="24dp"
-    app:cardElevation="0dp"
-    android:layout_margin="16dp">
+    app:cardCornerRadius="28dp"
+    app:cardElevation="8dp"
+    app:cardBackgroundColor="?attr/colorSurface"
+    android:layout_margin="20dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:padding="24dp">
 
         <ImageView
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="16dp"
+            android:id="@+id/iv_ocr_icon"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:src="@android:drawable/ic_menu_edit"
-            app:tint="?attr/colorPrimary" />
+            app:tint="?attr/colorPrimary"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <TextView
+            android:id="@+id/tv_ocr_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Optimisation par IA"
-            android:textSize="20sp"
+            android:layout_marginTop="16dp"
+            android:text="@string/ocr_optimization_title"
+            android:textSize="22sp"
             android:gravity="center"
             android:fontFamily="sans-serif-black"
             android:textColor="?attr/colorPrimary"
-            android:layout_marginBottom="8dp"/>
+            app:layout_constraintTop_toBottomOf="@id/iv_ocr_icon" />
 
         <TextView
+            android:id="@+id/tv_ocr_description"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Vérifiez et modifiez le texte si nécessaire avant de l'ajouter à votre note."
+            android:layout_marginTop="8dp"
+            android:text="@string/ocr_optimization_desc"
             android:textSize="14sp"
-            android:layout_marginBottom="16dp"
-            android:alpha="0.7"/>
+            android:gravity="center"
+            android:alpha="0.7"
+            android:textColor="?attr/colorOnSurface"
+            app:layout_constraintTop_toBottomOf="@id/tv_ocr_title" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        <!-- ScrollView to handle long text results and keep buttons visible -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/nsv_ocr_content"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusBottomEnd="16dp">
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            app:layout_constrainedHeight="true"
+            app:layout_constraintHeight_max="300dp"
+            app:layout_constraintHeight_min="120dp"
+            app:layout_constraintTop_toBottomOf="@id/tv_ocr_description"
+            app:layout_constraintBottom_toTopOf="@id/ll_ocr_actions">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_ocr_result"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_ocr_result"
+                style="@style/ModernTextInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minLines="5"
-                android:maxLines="15"
-                android:gravity="top"
-                android:inputType="textMultiLine"
-                android:textSize="16sp"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:hint="@string/extracted_text_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_ocr_result"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="top"
+                    android:inputType="textMultiLine"
+                    android:textSize="16sp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:padding="12dp"
+                    android:lineSpacingExtra="4dp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+        </androidx.core.widget.NestedScrollView>
 
         <LinearLayout
+            android:id="@+id/ll_ocr_actions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="24dp"
-            android:gravity="end">
+            android:gravity="end"
+            android:layout_marginTop="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/nsv_ocr_content">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_ocr_cancel"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Annuler"
+                android:text="@string/cancel"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:layout_marginEnd="8dp"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_ocr_confirm"
-                style="@style/Widget.Material3.Button"
+                style="@style/ModernButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Ajouter à la note"
-                app:cornerRadius="12dp"/>
+                android:text="@string/add_to_note"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"/>
         </LinearLayout>
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

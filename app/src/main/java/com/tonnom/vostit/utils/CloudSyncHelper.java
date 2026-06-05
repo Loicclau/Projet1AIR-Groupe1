@@ -42,10 +42,25 @@ public class CloudSyncHelper {
         this.db = FirebaseFirestore.getInstance();
         this.sessionManager = new SessionManager(context);
         
-        // Utilisation de l'instance par défaut (configurée via google-services.json)
-        this.storage = FirebaseStorage.getInstance();
+        // Initialisation explicite pour plus de stabilité
+        String bucket = "";
+        try {
+            int resId = context.getResources().getIdentifier("google_storage_bucket", "string", context.getPackageName());
+            if (resId != 0) {
+                bucket = context.getString(resId);
+            }
+        } catch (Exception ignored) {}
+
+        if (bucket.isEmpty()) {
+            this.storage = FirebaseStorage.getInstance();
+        } else {
+            if (!bucket.startsWith("gs://")) {
+                bucket = "gs://" + bucket;
+            }
+            this.storage = FirebaseStorage.getInstance(bucket);
+        }
         
-        Log.d(TAG, "CloudSyncHelper initialisé. Bucket: " + storage.getReference().getBucket());
+        Log.d(TAG, "CloudSyncHelper initialisé.");
         ensureFirebaseAuth();
     }
 
@@ -53,7 +68,11 @@ public class CloudSyncHelper {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             Log.d(TAG, "Aucun utilisateur Firebase. Tentative de connexion anonyme...");
             FirebaseAuth.getInstance().signInAnonymously()
-                    .addOnSuccessListener(authResult -> Log.d(TAG, "Connexion anonyme Firebase réussie : " + authResult.getUser().getUid()))
+                    .addOnSuccessListener(authResult -> {
+                        if (authResult.getUser() != null) {
+                            Log.d(TAG, "Connexion anonyme Firebase réussie : " + authResult.getUser().getUid());
+                        }
+                    })
                     .addOnFailureListener(e -> Log.e(TAG, "Échec de la connexion anonyme Firebase", e));
         } else {
             Log.d(TAG, "Utilisateur Firebase déjà connecté : " + FirebaseAuth.getInstance().getCurrentUser().getUid());
@@ -117,18 +136,18 @@ public class CloudSyncHelper {
                     Log.d(TAG, "Upload réussi, URL reçue : " + url);
                     newRemoteUrls.add(url);
                 } else {
-                    Log.e(TAG, "Échec de l'upload pour le chemin : " + path);
+                    Log.e(TAG, "Échec de l'upload pour le chemin : " + path + ". L'URL retournée est nulle.");
                 }
 
                 if (uploadCount.incrementAndGet() == totalImages) {
                     Log.d(TAG, "Tous les uploads terminés. Total collecté : " + newRemoteUrls.size());
                     saveNoteToFirestore(note, newRemoteUrls, callback);
                 }
-            });
+            }, callback);
         }
     }
 
-    private void uploadImage(String localPath, OnUploadCompleteListener listener) {
+    private void uploadImage(String localPath, OnUploadCompleteListener listener, SyncCallback mainCallback) {
         File file = new File(localPath);
         if (!file.exists()) {
             Log.e(TAG, "Fichier local introuvable : " + localPath);
@@ -168,11 +187,13 @@ public class CloudSyncHelper {
                         listener.onComplete(downloadUrl);
                     }).addOnFailureListener(e -> {
                         Log.e(TAG, "Erreur lors de la récupération de l'URL pour " + fileName, e);
+                        if (mainCallback != null) mainCallback.onFailure(e);
                         listener.onComplete(null);
                     });
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Échec de l'upload Storage pour " + fileName + ". Erreur: " + e.getMessage(), e);
+                    if (mainCallback != null) mainCallback.onFailure(e);
                     listener.onComplete(null);
                 });
     }
@@ -283,10 +304,15 @@ public class CloudSyncHelper {
                     note.setSubject(doc.getString("subject"));
                     note.setAuthor(doc.getString("author"));
                     
-                    try {
-                        List<String> urls = (List<String>) doc.get("imageUrls");
-                        note.setRemoteImageUrls(urls != null ? urls : new ArrayList<>());
-                    } catch (Exception ex) {
+                    Object urlsObj = doc.get("imageUrls");
+                    if (urlsObj instanceof List) {
+                        List<?> rawList = (List<?>) urlsObj;
+                        List<String> urls = new ArrayList<>();
+                        for (Object o : rawList) {
+                            if (o instanceof String) urls.add((String) o);
+                        }
+                        note.setRemoteImageUrls(urls);
+                    } else {
                         note.setRemoteImageUrls(new ArrayList<>());
                     }
                     

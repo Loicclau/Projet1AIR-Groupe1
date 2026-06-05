@@ -3,7 +3,6 @@ import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.google.services)
 }
 
 val localProperties = Properties().apply {
@@ -38,6 +37,8 @@ android {
         val fbKey: String = localProperties.getProperty("FIREBASE_API_KEY") ?: "MISSING_KEY"
         val fbAppId: String = localProperties.getProperty("FIREBASE_APP_ID") ?: "MISSING_ID"
         val fbProjectId: String = localProperties.getProperty("FIREBASE_PROJECT_ID") ?: "vost-it"
+        val fbStorage: String = localProperties.getProperty("FIREBASE_STORAGE_BUCKET") ?: "vost-it.appspot.com"
+        val fbSenderId: String = localProperties.getProperty("FIREBASE_SENDER_ID") ?: "756511378354"
 
         buildConfigField("String", "FIREBASE_API_KEY", "\"$fbKey\"")
         buildConfigField("String", "FIREBASE_APP_ID", "\"$fbAppId\"")
@@ -47,10 +48,14 @@ android {
         resValue("string", "google_api_key", fbKey)
         resValue("string", "google_app_id", fbAppId)
         resValue("string", "project_id", fbProjectId)
+        resValue("string", "google_storage_bucket", fbStorage)
+        resValue("string", "gcm_defaultSenderId", fbSenderId)
+        resValue("string", "google_crash_reporting_api_key", fbKey)
     }
 
     buildFeatures {
         buildConfig = true
+        resValues = true
     }
 
     buildTypes {

@@ -23,4 +23,9 @@
     <string name="save_note">Sauvegarder</string>
     <string name="note_title_hint">Titre de la note</string>
     <string name="note_content_hint">Contenu de la note...</string>
+    <string name="extracted_text_hint">Texte extrait</string>
+    <string name="ocr_optimization_title">Optimisation par IA</string>
+    <string name="ocr_optimization_desc">Vérifiez et modifiez le texte si nécessaire avant de l\'ajouter à votre note.</string>
+    <string name="cancel">Annuler</string>
+    <string name="add_to_note">Ajouter à la note</string>
 </resources>

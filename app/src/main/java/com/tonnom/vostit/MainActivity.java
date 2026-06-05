@@ -293,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
                 continue;
             }
 
-            ListenableFuture<GenerateContentResponse> future = geminiHelper.extractTextFromImage(bitmap);
+            ListenableFuture<GenerateContentResponse> future = geminiHelper.extractAndCleanText(bitmap);
             Futures.addCallback(future, new FutureCallback<GenerateContentResponse>() {
                 @Override
                 public void onSuccess(GenerateContentResponse result) {

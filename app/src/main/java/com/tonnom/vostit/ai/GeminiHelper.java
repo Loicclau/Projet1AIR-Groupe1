@@ -10,25 +10,23 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 public class GeminiHelper {
     private final GenerativeModelFutures model;
-    private static final String MODEL_NAME = "gemini-2.5-flash";
+    private static final String MODEL_NAME = "gemini-2.5-flash"; // gemini-1.5-flash est stable et performant pour l'OCR
 
     public GeminiHelper(String apiKey) {
-        // Utilisation du SDK Android officiel pour éviter les conflits Apache HttpClient
         GenerativeModel gm = new GenerativeModel(MODEL_NAME, apiKey);
         this.model = GenerativeModelFutures.from(gm);
     }
 
-    public ListenableFuture<GenerateContentResponse> extractTextFromImage(Bitmap bitmap) {
-        String prompt = "Tu es un expert en OCR (Reconnaissance Optique de Caractères) spécialisé dans les notes de cours manuscrites et les documents imprimés.\n" +
-                "\n" +
-                "TACHE :\n" +
-                "1. Extrais TOUT le texte lisible de cette image.\n" +
-                "2. Nettoie le texte : corrige les fautes de frappe ou d'orthographe évidentes dues à une mauvaise lecture.\n" +
-                "3. Reformule légèrement pour que les phrases soient grammaticalement correctes si le texte original est décousu, tout en restant STRICTEMENT fidèle au contenu.\n" +
-                "4. Structure le texte proprement (titres, listes à puces si approprié).\n" +
-                "5. Si le texte semble incohérent ou totalement illisible, réponds : \"[ERREUR: TEXTE ILLISIBLE]\".\n" +
-                "\n" +
-                "RETOURNE UNIQUEMENT LE TEXTE TRAITÉ.";
+    public ListenableFuture<GenerateContentResponse> extractAndCleanText(Bitmap bitmap) {
+        String prompt = "Tu es un expert en OCR (Reconnaissance Optique de Caractères) et en traitement de documents. " +
+                "Ton objectif est d'extraire le texte de cette image (notes manuscrites ou imprimées), de le nettoyer et de le reformuler de manière structurée.\n\n" +
+                "INSTRUCTIONS :\n" +
+                "1. EXTRACTION : Lis tout le texte présent dans l'image.\n" +
+                "2. NETTOYAGE : Corrige les fautes d'orthographe, de grammaire et les erreurs courantes d'OCR (lettres confondues).\n" +
+                "3. REFORMULATION : Si le texte est fragmenté (tirets, bribes de phrases), reformule-le en paragraphes fluides ou en listes à puces claires tout en restant 100% fidèle au sens original.\n" +
+                "4. STRUCTURE : Utilise du Markdown pour structurer (Titres #, gras **, listes -).\n" +
+                "5. VÉRIFICATION : Si le texte est totalement illisible ou incohérent, renvoie exactement : \"[ERREUR: TEXTE ILLISIBLE]\".\n\n" +
+                "RENVOIE UNIQUEMENT LE TEXTE TRAITÉ SANS COMMENTAIRE.";
 
         Content content = new Content.Builder()
                 .addImage(bitmap)
@@ -43,22 +41,17 @@ public class GeminiHelper {
                 "RÈGLES STRICTES :\n" +
                 "- Utilise UNIQUEMENT les informations présentes dans les notes fournies\n" +
                 "- N'ajoute AUCUNE information, explication ou exemple qui ne vient pas des notes\n" +
-                "- Si une même information apparaît dans plusieurs notes, fusionne-la en une seule entrée sans la modifier\n" +
-                "- Reformule légèrement pour la lisibilité, mais reste fidèle au sens original\n" +
-                "- Si une section ne peut pas être remplie avec le contenu des notes, indique : \"(non mentionné dans les notes)\"\n\n" +
+                "- Fusionne les informations redondantes.\n" +
+                "- Reformule pour la clarté et la fluidité.\n\n" +
                 "Voici les notes de cours à organiser :\n\n" +
                 "--- DÉBUT DES NOTES ---\n" +
                 fullText + "\n" +
                 "--- FIN DES NOTES ---\n\n" +
-                "Restructure ces notes selon ce format :\n\n" +
+                "Restructure ces notes selon ce format :\n" +
                 "# Résumé global du cours\n" +
-                "(Synthèse rédigée uniquement à partir des notes, sans ajout)\n\n" +
                 "# Points importants\n" +
-                "(Liste des points clés présents dans les notes, dédoublonnés et ordonnés logiquement)\n\n" +
                 "# Définitions\n" +
-                "(Uniquement les définitions explicitement présentes dans les notes, format : **terme** : définition)\n\n" +
-                "# Concepts clés à retenir\n" +
-                "(Uniquement les concepts mentionnés dans les notes, regroupés et ordonnés)\n";
+                "# Concepts clés à retenir\n";
 
         Content content = new Content.Builder()
                 .addText(prompt)
