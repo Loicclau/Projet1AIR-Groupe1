@@ -42,19 +42,22 @@ public class CloudSyncHelper {
         this.db = FirebaseFirestore.getInstance();
         this.sessionManager = new SessionManager(context);
         
-        // Tentative d'initialisation sécurisée
-        FirebaseStorage storageInstance;
-        try {
-            // Utilisation explicite du bucket défini dans google-services.json
-            storageInstance = FirebaseStorage.getInstance("gs://vost-it.firebasestorage.app");
-        } catch (Exception e) {
-            Log.e(TAG, "Erreur lors de l'initialisation de FirebaseStorage avec bucket explicite", e);
-            storageInstance = FirebaseStorage.getInstance();
-        }
-        this.storage = storageInstance;
+        // Utilisation de l'instance par défaut (configurée via google-services.json)
+        this.storage = FirebaseStorage.getInstance();
         
-        Log.d(TAG, "CloudSyncHelper initialisé. Bucket utilisé : " + storage.getReference().getBucket());
-        Log.d(TAG, "Statut Firebase Auth : " + (FirebaseAuth.getInstance().getCurrentUser() != null ? "Connecté" : "Non connecté"));
+        Log.d(TAG, "CloudSyncHelper initialisé. Bucket: " + storage.getReference().getBucket());
+        ensureFirebaseAuth();
+    }
+
+    private void ensureFirebaseAuth() {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Log.d(TAG, "Aucun utilisateur Firebase. Tentative de connexion anonyme...");
+            FirebaseAuth.getInstance().signInAnonymously()
+                    .addOnSuccessListener(authResult -> Log.d(TAG, "Connexion anonyme Firebase réussie : " + authResult.getUser().getUid()))
+                    .addOnFailureListener(e -> Log.e(TAG, "Échec de la connexion anonyme Firebase", e));
+        } else {
+            Log.d(TAG, "Utilisateur Firebase déjà connecté : " + FirebaseAuth.getInstance().getCurrentUser().getUid());
+        }
     }
 
     /**
@@ -70,6 +73,23 @@ public class CloudSyncHelper {
             return;
         }
 
+        // On s'assure d'être connecté avant d'uploader
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Log.w(TAG, "Auth non prêt. Tentative de connexion avant upload...");
+            FirebaseAuth.getInstance().signInAnonymously().addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    startUploads(note, localPaths, callback);
+                } else {
+                    Log.e(TAG, "Impossible de se connecter à Firebase pour l'upload");
+                    if (callback != null) callback.onFailure(new Exception("Firebase Auth failed"));
+                }
+            });
+        } else {
+            startUploads(note, localPaths, callback);
+        }
+    }
+
+    private void startUploads(Note note, List<String> localPaths, SyncCallback callback) {
         List<String> newRemoteUrls = java.util.Collections.synchronizedList(new ArrayList<>());
         
         if (localPaths == null || localPaths.isEmpty()) {
@@ -227,47 +247,54 @@ public class CloudSyncHelper {
     }
 
     public void fetchCloudNotes(String subject, OnCloudFetchListener listener) {
-        String username = sessionManager.getUsername();
-        if (username == null) return;
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            FirebaseAuth.getInstance().signInAnonymously().addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    startListening(subject, listener);
+                }
+            });
+        } else {
+            startListening(subject, listener);
+        }
+    }
 
+    private void startListening(String subject, OnCloudFetchListener listener) {
         stopListening();
 
-        // Pour la collaboration, on charge toutes les notes de la matière
         Query query = db.collection("notes");
-        
         if (subject != null) {
             query = query.whereEqualTo("subject", subject);
         }
 
         registration = query.addSnapshotListener((snapshots, e) -> {
-                    if (e != null) {
-                        Log.e(TAG, "Listen failed", e);
-                        return;
-                    }
+            if (e != null) {
+                Log.e(TAG, "Listen failed", e);
+                return;
+            }
 
-                    if (snapshots != null) {
-                        List<Note> cloudNotes = new ArrayList<>();
-                        for (QueryDocumentSnapshot doc : snapshots) {
-                            Note note = new Note();
-                            note.setCloudId(doc.getId());
-                            note.setTitre(doc.getString("titre"));
-                            note.setContenu(doc.getString("contenu"));
-                            note.setDate(doc.getString("date"));
-                            note.setSubject(doc.getString("subject"));
-                            note.setAuthor(doc.getString("author"));
-                            
-                            try {
-                                List<String> urls = (List<String>) doc.get("imageUrls");
-                                note.setRemoteImageUrls(urls != null ? urls : new ArrayList<>());
-                            } catch (Exception ex) {
-                                note.setRemoteImageUrls(new ArrayList<>());
-                            }
-                            
-                            cloudNotes.add(note);
-                        }
-                        listener.onFetch(cloudNotes);
+            if (snapshots != null) {
+                List<Note> cloudNotes = new ArrayList<>();
+                for (QueryDocumentSnapshot doc : snapshots) {
+                    Note note = new Note();
+                    note.setCloudId(doc.getId());
+                    note.setTitre(doc.getString("titre"));
+                    note.setContenu(doc.getString("contenu"));
+                    note.setDate(doc.getString("date"));
+                    note.setSubject(doc.getString("subject"));
+                    note.setAuthor(doc.getString("author"));
+                    
+                    try {
+                        List<String> urls = (List<String>) doc.get("imageUrls");
+                        note.setRemoteImageUrls(urls != null ? urls : new ArrayList<>());
+                    } catch (Exception ex) {
+                        note.setRemoteImageUrls(new ArrayList<>());
                     }
-                });
+                    
+                    cloudNotes.add(note);
+                }
+                listener.onFetch(cloudNotes);
+            }
+        });
     }
 
     public void stopListening() {
