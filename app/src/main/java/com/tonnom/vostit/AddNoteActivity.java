@@ -9,7 +9,6 @@ import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -26,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.tonnom.vostit.database.NoteDatabase;
 import com.tonnom.vostit.model.Note;
 import com.tonnom.vostit.model.NoteImage;
+import com.tonnom.vostit.utils.CloudSyncHelper;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -45,8 +45,12 @@ public class AddNoteActivity extends AppCompatActivity {
     private RecyclerView recyclerPhotos;
     private PhotoPreviewAdapter photoAdapter;
     private List<String> photoPaths = new ArrayList<>();
+    private List<String> existingPhotoPaths = new ArrayList<>();
+    private int editingNoteId = -1;
     private String selectedSubject;
     private SessionManager sessionManager;
+    private CloudSyncHelper cloudSyncHelper;
+    private View loadingOverlay;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private Uri currentPhotoUri;
     private String currentPhotoPath;
@@ -83,13 +87,20 @@ public class AddNoteActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_note);
 
         sessionManager = new SessionManager(this);
+        cloudSyncHelper = new CloudSyncHelper(this);
+        loadingOverlay = findViewById(R.id.loading_overlay);
         selectedSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
+        editingNoteId = getIntent().getIntExtra("NOTE_ID", -1);
         
         Toolbar toolbar = findViewById(R.id.toolbar_add_note);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(selectedSubject != null ? "Nouveau : " + selectedSubject : "Nouvelle Note");
+            if (editingNoteId != -1) {
+                getSupportActionBar().setTitle("Modifier la note");
+            } else {
+                getSupportActionBar().setTitle(selectedSubject != null ? "Nouveau : " + selectedSubject : "Nouvelle Note");
+            }
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 
@@ -101,15 +112,40 @@ public class AddNoteActivity extends AppCompatActivity {
         recyclerPhotos.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         recyclerPhotos.setAdapter(photoAdapter);
 
+        if (editingNoteId != -1) {
+            chargerDonneesNote();
+        }
+
         findViewById(R.id.btn_camera).setOnClickListener(v -> openCamera());
         
-        // Ajout dynamique ou recherche du bouton galerie s'il existe dans le layout
         View btnGallery = findViewById(R.id.btn_gallery);
         if (btnGallery != null) {
             btnGallery.setOnClickListener(v -> openGallery());
         }
 
         findViewById(R.id.btn_sauvegarder).setOnClickListener(v -> sauvegarderNote());
+    }
+
+    private void chargerDonneesNote() {
+        executor.execute(() -> {
+            Note note = NoteDatabase.getInstance(this).noteDao().getNoteById(editingNoteId);
+            List<NoteImage> images = NoteDatabase.getInstance(this).noteDao().getImagesForNote(editingNoteId);
+            
+            runOnUiThread(() -> {
+                if (note != null) {
+                    etTitre.setText(note.getTitre());
+                    etContenu.setText(note.getContenu());
+                    for (NoteImage img : images) {
+                        photoPaths.add(img.getImagePath());
+                        existingPhotoPaths.add(img.getImagePath());
+                    }
+                    if (!photoPaths.isEmpty()) {
+                        recyclerPhotos.setVisibility(View.VISIBLE);
+                        photoAdapter.notifyDataSetChanged();
+                    }
+                }
+            });
+        });
     }
 
     private void openCamera() {
@@ -164,23 +200,70 @@ public class AddNoteActivity extends AppCompatActivity {
             return;
         }
 
-        String date = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date());
-        Note note = new Note();
-        note.setTitre(titre);
-        note.setContenu(contenu);
-        note.setDate(date);
-        note.setSubject(selectedSubject);
-        note.setAuthor(sessionManager.getUsername());
+        loadingOverlay.setVisibility(View.VISIBLE);
 
         executor.execute(() -> {
-            long noteId = NoteDatabase.getInstance(this).noteDao().insert(note);
-            for (String path : photoPaths) {
-                NoteDatabase.getInstance(this).noteDao().insertImage(new NoteImage((int) noteId, path));
+            try {
+                Note note;
+                boolean isNew = (editingNoteId == -1);
+                
+                if (!isNew) {
+                    note = NoteDatabase.getInstance(this).noteDao().getNoteById(editingNoteId);
+                    note.setTitre(titre);
+                    note.setContenu(contenu);
+                    NoteDatabase.getInstance(this).noteDao().update(note);
+                } else {
+                    String date = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date());
+                    note = new Note();
+                    note.setTitre(titre);
+                    note.setContenu(contenu);
+                    note.setDate(date);
+                    note.setSubject(selectedSubject);
+                    note.setAuthor(sessionManager.getUsername());
+                    editingNoteId = (int) NoteDatabase.getInstance(this).noteDao().insert(note);
+                    note.setId(editingNoteId);
+                }
+                
+                // On récupère les nouvelles images à uploader
+                List<String> newPaths = new ArrayList<>();
+                for (String path : photoPaths) {
+                    if (!existingPhotoPaths.contains(path)) {
+                        if (!path.startsWith("http")) {
+                            NoteDatabase.getInstance(this).noteDao().insertImage(new NoteImage(editingNoteId, path));
+                        }
+                        newPaths.add(path);
+                    }
+                }
+
+                // Récupération de l'objet Note mis à jour (avec ses éventuelles URLs distantes déjà présentes)
+                Note noteToUpload = NoteDatabase.getInstance(this).noteDao().getNoteById(editingNoteId);
+                
+                // Lancement de la synchro Cloud avec callback pour fermer l'activité proprement
+                cloudSyncHelper.uploadNote(noteToUpload, newPaths, new CloudSyncHelper.SyncCallback() {
+                    @Override
+                    public void onSuccess() {
+                        runOnUiThread(() -> {
+                            loadingOverlay.setVisibility(View.GONE);
+                            Toast.makeText(AddNoteActivity.this, "Note enregistrée et synchronisée !", Toast.LENGTH_SHORT).show();
+                            finish();
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        runOnUiThread(() -> {
+                            loadingOverlay.setVisibility(View.GONE);
+                            Toast.makeText(AddNoteActivity.this, "Sauvegarde locale OK, mais erreur Cloud : " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            finish(); // On ferme quand même car la sauvegarde locale est réussie
+                        });
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    loadingOverlay.setVisibility(View.GONE);
+                    Toast.makeText(this, "Erreur lors de la sauvegarde : " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
             }
-            runOnUiThread(() -> {
-                Toast.makeText(this, "Note sauvegardée ✓", Toast.LENGTH_SHORT).show();
-                finish();
-            });
         });
     }
 

@@ -2,8 +2,10 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="?attr/android:windowBackground">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -13,19 +15,35 @@
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar_detail"
+            style="@style/ModernToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="?attr/homeAsUpIndicator">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_delete_note"
-                style="@style/Widget.Material3.Button.IconButton"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
-                android:layout_marginEnd="8dp"
-                app:icon="@android:drawable/ic_menu_delete"
-                app:iconTint="@color/error" />
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_edit_note"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:icon="@android:drawable/ic_menu_edit"
+                    app:iconTint="?attr/colorPrimary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_delete_note"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    app:icon="@android:drawable/ic_menu_delete"
+                    app:iconTint="@color/error" />
+
+            </LinearLayout>
 
         </com.google.android.material.appbar.MaterialToolbar>
 
@@ -40,53 +58,66 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:padding="24dp">
 
             <TextView
                 android:id="@+id/tv_detail_titre"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="32sp"
                 android:fontFamily="sans-serif-black"
-                android:textColor="?attr/colorPrimary"/>
+                android:textColor="?attr/colorPrimary"
+                android:textSize="32sp"
+                tools:text="Titre de la note" />
 
             <TextView
                 android:id="@+id/tv_detail_date"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textSize="14sp"
-                android:alpha="0.5"
+                android:layout_marginTop="12dp"
+                android:alpha="0.6"
+                android:drawablePadding="8dp"
                 android:fontFamily="sans-serif-medium"
+                android:textSize="14sp"
                 app:drawableStartCompat="@android:drawable/ic_menu_recent_history"
                 app:drawableTint="?attr/colorPrimary"
-                android:drawablePadding="8dp"/>
+                tools:text="12 Octobre 2023" />
 
-            <View
-                android:layout_width="60dp"
+            <com.google.android.material.divider.MaterialDivider
+                android:layout_width="80dp"
                 android:layout_height="4dp"
                 android:layout_marginTop="24dp"
-                android:background="?attr/colorPrimary"
-                android:alpha="0.3"/>
+                app:dividerColor="?attr/colorPrimary"
+                app:dividerThickness="4dp" />
 
-            <TextView
-                android:id="@+id/tv_detail_contenu"
+            <com.google.android.material.card.MaterialCardView
+                style="@style/ModernCardView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:textSize="17sp"
-                android:lineSpacingMultiplier="1.4"
-                android:textColor="?attr/colorOnSurface"/>
+                app:cardCornerRadius="20dp"
+                app:contentPadding="20dp">
+
+                <TextView
+                    android:id="@+id/tv_detail_contenu"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif"
+                    android:lineSpacingMultiplier="1.5"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp"
+                    tools:text="Contenu de la note qui peut être très long..." />
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:id="@+id/tv_images_label"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="40dp"
-                android:text="@string/attached_images"
                 android:fontFamily="sans-serif-black"
-                android:textSize="18sp"
-                android:visibility="gone"/>
+                android:text="@string/attached_images"
+                android:textSize="20sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_detail_images"
@@ -94,7 +125,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:nestedScrollingEnabled="false"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                tools:listitem="@layout/item_image_detail" />
 
         </LinearLayout>
 

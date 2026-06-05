@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/windowBackground">
+    android:background="?attr/android:windowBackground">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -14,24 +16,24 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="16dp"
-            android:gravity="center_vertical">
+            android:padding="24dp">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Mes Cours"
-                android:textSize="24sp"
                 android:fontFamily="sans-serif-black"
-                android:textColor="?attr/colorOnSurface" />
+                android:text="Mes Cours"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="32sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_logout"
                 style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 app:icon="@android:drawable/ic_lock_power_off"
                 app:iconTint="@color/error" />
         </LinearLayout>
@@ -48,33 +50,72 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_view_syntheses"
-                style="@style/ModernButton"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Voir mes synthèses IA"
-                app:icon="@android:drawable/ic_menu_agenda"
-                android:layout_marginBottom="24dp"
-                app:backgroundTint="?attr/colorPrimary"
-                android:textColor="@color/white" />
+                android:layout_marginBottom="32dp"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.1"
+                        android:text="Assistant IA"
+                        android:textAllCaps="true"
+                        android:textColor="?attr/colorOnSecondaryContainer"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif"
+                        android:text="Consultez vos synthèses générées pour réviser plus efficacement."
+                        android:textColor="?attr/colorOnSecondaryContainer"
+                        android:textSize="16sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_view_syntheses"
+                        style="@style/ModernButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:text="Voir mes synthèses"
+                        android:textColor="?attr/colorOnSecondary"
+                        app:backgroundTint="?attr/colorSecondary"
+                        app:icon="@android:drawable/ic_menu_agenda"
+                        app:iconTint="?attr/colorOnSecondary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginBottom="16dp"
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.1"
                 android:text="Sélectionnez une matière"
-                android:textSize="14sp"
-                android:fontFamily="sans-serif-medium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:layout_marginBottom="12dp"
                 android:textAllCaps="true"
-                android:letterSpacing="0.1" />
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_subjects"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false" />
+                android:nestedScrollingEnabled="false"
+                tools:listitem="@layout/item_subject" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

@@ -17,6 +17,7 @@ import com.tonnom.vostit.model.Note;
 import com.tonnom.vostit.model.NoteImage;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,12 +26,18 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private TextView tvTitre, tvDate, tvContenu, tvImagesLabel;
     private RecyclerView recyclerImages;
+    private int noteId;
+    private String cloudId;
+    private String selectedSubjectFromNote;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_note_detail);
+
+        noteId = getIntent().getIntExtra("NOTE_ID", -1);
+        cloudId = getIntent().getStringExtra("CLOUD_ID");
 
         tvTitre = findViewById(R.id.tv_detail_titre);
         tvDate = findViewById(R.id.tv_detail_date);
@@ -46,14 +53,22 @@ public class NoteDetailActivity extends AppCompatActivity {
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 
+        findViewById(R.id.btn_edit_note).setOnClickListener(v -> {
+            android.content.Intent intent = new android.content.Intent(this, AddNoteActivity.class);
+            intent.putExtra("NOTE_ID", noteId);
+            intent.putExtra("SELECTED_SUBJECT", selectedSubjectFromNote);
+            startActivity(intent);
+        });
+
         findViewById(R.id.btn_delete_note).setOnClickListener(v -> confirmerSuppressionNote());
 
         recyclerImages.setLayoutManager(new LinearLayoutManager(this));
         recyclerImages.setNestedScrollingEnabled(false);
 
-        int noteId = getIntent().getIntExtra("NOTE_ID", -1);
         if (noteId != -1) {
             chargerDetailNote(noteId);
+        } else if (cloudId != null) {
+            chargerDetailNoteParCloudId(cloudId);
         } else {
             finish();
         }
@@ -62,29 +77,63 @@ public class NoteDetailActivity extends AppCompatActivity {
     private void chargerDetailNote(int noteId) {
         executor.execute(() -> {
             Note note = NoteDatabase.getInstance(this).noteDao().getNoteById(noteId);
-            List<NoteImage> images = NoteDatabase.getInstance(this).noteDao().getImagesForNote(noteId);
+            afficherNote(note);
+        });
+    }
 
+    private void chargerDetailNoteParCloudId(String cloudId) {
+        executor.execute(() -> {
+            Note note = NoteDatabase.getInstance(this).noteDao().getNoteByCloudId(cloudId);
+            afficherNote(note);
+        });
+    }
+
+    private void afficherNote(Note note) {
+        if (note == null) {
             runOnUiThread(() -> {
-                if (note != null) {
-                    tvTitre.setText(note.getTitre());
-                    tvDate.setText(note.getDate());
-                    tvContenu.setText(note.getContenu());
-                    
-                    if (images.isEmpty()) {
-                        tvImagesLabel.setVisibility(View.GONE);
-                        recyclerImages.setVisibility(View.GONE);
-                    } else {
-                        tvImagesLabel.setVisibility(View.VISIBLE);
-                        recyclerImages.setVisibility(View.VISIBLE);
-                        recyclerImages.setAdapter(new ImageAdapter(images, image -> confirmerSuppressionImage(image, noteId)));
+                Toast.makeText(this, "Note introuvable", Toast.LENGTH_SHORT).show();
+                finish();
+            });
+            return;
+        }
+        
+        List<NoteImage> localImages = NoteDatabase.getInstance(this).noteDao().getImagesForNote(note.getId());
+
+        runOnUiThread(() -> {
+            selectedSubjectFromNote = note.getSubject();
+            tvTitre.setText(note.getTitre());
+            tvDate.setText(note.getDate());
+            tvContenu.setText(note.getContenu());
+            
+            List<String> allImagePaths = new ArrayList<>();
+            for (NoteImage img : localImages) {
+                allImagePaths.add(img.getImagePath());
+            }
+            
+            if (note.getRemoteImageUrls() != null) {
+                for (String url : note.getRemoteImageUrls()) {
+                    if (!allImagePaths.contains(url)) {
+                        allImagePaths.add(url);
                     }
                 }
-            });
+            }
+
+            if (allImagePaths.isEmpty()) {
+                tvImagesLabel.setVisibility(View.GONE);
+                recyclerImages.setVisibility(View.GONE);
+            } else {
+                tvImagesLabel.setVisibility(View.VISIBLE);
+                recyclerImages.setVisibility(View.VISIBLE);
+                recyclerImages.setAdapter(new ImageAdapter(allImagePaths, path -> {
+                    if (!path.startsWith("http")) {
+                        confirmerSuppressionImage(path, note.getId());
+                    }
+                }));
+            }
         });
     }
 
     private void confirmerSuppressionNote() {
-        int noteId = getIntent().getIntExtra("NOTE_ID", -1);
         new AlertDialog.Builder(this)
                 .setTitle("Supprimer la note")
                 .setMessage("Voulez-vous supprimer cette note et toutes ses images ?")
@@ -110,19 +159,19 @@ public class NoteDetailActivity extends AppCompatActivity {
         });
     }
 
-    private void confirmerSuppressionImage(NoteImage image, int noteId) {
+    private void confirmerSuppressionImage(String imagePath, int noteId) {
         new AlertDialog.Builder(this)
                 .setTitle("Supprimer l'image")
                 .setMessage("Voulez-vous supprimer cette image définitivement ?")
-                .setPositiveButton("Supprimer", (dialog, which) -> supprimerImage(image, noteId))
+                .setPositiveButton("Supprimer", (dialog, which) -> supprimerImage(imagePath, noteId))
                 .setNegativeButton("Annuler", null)
                 .show();
     }
 
-    private void supprimerImage(NoteImage image, int noteId) {
+    private void supprimerImage(String imagePath, int noteId) {
         executor.execute(() -> {
-            NoteDatabase.getInstance(this).noteDao().deleteImage(image);
-            File file = new File(image.getImagePath());
+            NoteDatabase.getInstance(this).noteDao().deleteImageByPath(imagePath);
+            File file = new File(imagePath);
             if (file.exists()) file.delete();
             chargerDetailNote(noteId);
         });

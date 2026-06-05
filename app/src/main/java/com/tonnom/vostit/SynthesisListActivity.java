@@ -31,6 +31,7 @@ public class SynthesisListActivity extends AppCompatActivity {
 
     private SynthesisAdapter adapter;
     private View emptyState;
+    private String filterSubject;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
@@ -38,10 +39,15 @@ public class SynthesisListActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_synthesis_list);
 
+        filterSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
+
         Toolbar toolbar = findViewById(R.id.toolbar_synthesis);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            if (filterSubject != null) {
+                getSupportActionBar().setTitle("Synthèses : " + filterSubject);
+            }
             toolbar.setNavigationOnClickListener(v -> finish());
         }
 
@@ -56,9 +62,20 @@ public class SynthesisListActivity extends AppCompatActivity {
         loadSyntheses();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadSyntheses();
+    }
+
     private void loadSyntheses() {
         executor.execute(() -> {
-            List<Synthesis> list = NoteDatabase.getInstance(this).synthesisDao().getAllSyntheses();
+            List<Synthesis> list;
+            if (filterSubject != null) {
+                list = NoteDatabase.getInstance(this).synthesisDao().getAllForSubject(filterSubject);
+            } else {
+                list = NoteDatabase.getInstance(this).synthesisDao().getAllSyntheses();
+            }
             runOnUiThread(() -> {
                 adapter.setData(list);
                 emptyState.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
@@ -67,29 +84,9 @@ public class SynthesisListActivity extends AppCompatActivity {
     }
 
     private void showSynthesisDetails(Synthesis synthesis) {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_synthesis, null);
-        TextView tvContent = dialogView.findViewById(R.id.tv_synthesis_content);
-        tvContent.setText(synthesis.getContent());
-
-        View btnDownload = dialogView.findViewById(R.id.btn_download_pdf);
-        btnDownload.setOnClickListener(v -> {
-            Toast.makeText(this, "Génération du PDF...", Toast.LENGTH_SHORT).show();
-            executor.execute(() -> {
-                PdfExportHelper.exportToPdf(this, "Synthèse " + synthesis.getSubject(), synthesis.getContent());
-            });
-        });
-
-        new AlertDialog.Builder(this)
-                .setTitle("Synthèse de " + synthesis.getSubject())
-                .setView(dialogView)
-                .setPositiveButton("Fermer", null)
-                .setNeutralButton("Supprimer", (dialog, which) -> {
-                    executor.execute(() -> {
-                        NoteDatabase.getInstance(this).synthesisDao().deleteById(synthesis.getId());
-                        loadSyntheses();
-                    });
-                })
-                .show();
+        Intent intent = new Intent(this, SynthesisDetailActivity.class);
+        intent.putExtra("SYNTHESIS_ID", synthesis.getId());
+        startActivity(intent);
     }
 
     private static class SynthesisAdapter extends RecyclerView.Adapter<SynthesisAdapter.ViewHolder> {

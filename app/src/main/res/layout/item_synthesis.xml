@@ -2,44 +2,86 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    style="@style/ModernCardView"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="4dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="0dp"
+    app:cardBackgroundColor="?attr/colorSurface">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="20dp">
 
-        <TextView
-            android:id="@+id/tv_synthesis_subject"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:fontFamily="sans-serif-black"
-            android:textColor="?attr/colorPrimary" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_synthesis_subject"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-black"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="20sp"
+                tools:text="Mathématiques" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="0dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:text="IA"
+                    android:textColor="?attr/colorOnSecondaryContainer"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-black" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tv_synthesis_date"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="12sp"
+            android:layout_marginTop="4dp"
+            android:alpha="0.6"
             android:fontFamily="sans-serif-medium"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:layout_marginTop="4dp"
-            android:alpha="0.7" />
+            android:textSize="12sp"
+            tools:text="Généré le 12 Octobre" />
+
+        <com.google.android.material.divider.MaterialDivider
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:alpha="0.1" />
 
         <TextView
             android:id="@+id/tv_synthesis_preview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:maxLines="3"
             android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:lineSpacingMultiplier="1.3"
+            android:maxLines="3"
             android:textColor="?attr/colorOnSurface"
-            android:layout_marginTop="12dp"
-            android:lineSpacingMultiplier="1.2" />
+            android:textSize="15sp"
+            tools:text="Voici un aperçu de la synthèse générée par l'IA pour ce cours. Elle contient les points clés et les définitions importantes." />
 
     </LinearLayout>
 

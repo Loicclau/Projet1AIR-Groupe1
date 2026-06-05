@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "756511378354",
+    "project_id": "vost-it",
+    "storage_bucket": "vost-it.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:756511378354:android:eb7f8706e500a2e53832ab",
+        "android_client_info": {
+          "package_name": "com.tonnom.vostit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1yGRNrh4ciyAQk-YdAdDx1KUrTeq8540"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

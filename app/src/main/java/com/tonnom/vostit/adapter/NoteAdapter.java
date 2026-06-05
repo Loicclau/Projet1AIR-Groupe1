@@ -42,7 +42,14 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         holder.date.setText(note.getDate());
         
         String author = note.getAuthor();
-        holder.author.setText(author != null ? author : "Anonyme");
+        String displayAuthor = author != null ? author : "Anonyme";
+        
+        // Indicateur visuel pour les notes partagées
+        if (note.getCloudId() != null) {
+            holder.author.setText("🌍 " + displayAuthor);
+        } else {
+            holder.author.setText("👤 " + displayAuthor);
+        }
         
         holder.itemView.setOnClickListener(v -> listener.onNoteClick(note));
     }

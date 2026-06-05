@@ -32,6 +32,9 @@ public interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :id")
     Note getNoteById(int id);
 
+    @Query("SELECT * FROM notes WHERE cloudId = :cloudId")
+    Note getNoteByCloudId(String cloudId);
+
     @Insert
     void insertImage(NoteImage image);
 
@@ -46,4 +49,7 @@ public interface NoteDao {
 
     @Query("DELETE FROM notes WHERE id = :noteId")
     void deleteNoteById(int noteId);
+
+    @Query("DELETE FROM note_images WHERE imagePath = :path")
+    void deleteImageByPath(String path);
 }

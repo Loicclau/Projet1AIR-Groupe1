@@ -1,8 +1,6 @@
 package com.tonnom.vostit.adapter;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,27 +9,23 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.tonnom.vostit.FullScreenImageActivity;
 import com.tonnom.vostit.R;
-import com.tonnom.vostit.model.NoteImage;
 
 import java.util.List;
 
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> {
 
-    private final List<NoteImage> images;
+    private final List<String> imagePaths;
     private final OnImageLongClickListener longClickListener;
 
     public interface OnImageLongClickListener {
-        void onImageLongClick(NoteImage image);
+        void onImageLongClick(String path);
     }
 
-    public ImageAdapter(List<NoteImage> images) {
-        this(images, null);
-    }
-
-    public ImageAdapter(List<NoteImage> images, OnImageLongClickListener longClickListener) {
-        this.images = images;
+    public ImageAdapter(List<String> imagePaths, OnImageLongClickListener longClickListener) {
+        this.imagePaths = imagePaths;
         this.longClickListener = longClickListener;
     }
 
@@ -44,31 +38,35 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        NoteImage image = images.get(position);
-        if (image.getImagePath() != null) {
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = 2; 
-            Bitmap bitmap = BitmapFactory.decodeFile(image.getImagePath(), options);
-            holder.imageView.setImageBitmap(bitmap);
+        String path = imagePaths.get(position);
+        
+        // Glide gère intelligemment les fichiers locaux et les URLs distantes
+        Glide.with(holder.imageView.getContext())
+                .load(path)
+                .placeholder(R.drawable.ic_launcher_foreground) // Placeholder par défaut
+                .centerCrop()
+                .into(holder.imageView);
             
-            holder.itemView.setOnClickListener(v -> {
-                Intent intent = new Intent(v.getContext(), FullScreenImageActivity.class);
-                intent.putExtra("IMAGE_PATH", image.getImagePath());
-                v.getContext().startActivity(intent);
-            });
+        holder.itemView.setOnClickListener(v -> {
+            android.app.Activity activity = (android.app.Activity) v.getContext();
+            Intent intent = new Intent(activity, FullScreenImageActivity.class);
+            intent.putExtra("IMAGE_PATH", path);
+            activity.startActivity(intent);
+            // Animation fluide d'entrée
+            activity.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        });
 
-            if (longClickListener != null) {
-                holder.itemView.setOnLongClickListener(v -> {
-                    longClickListener.onImageLongClick(image);
-                    return true;
-                });
-            }
+        if (longClickListener != null) {
+            holder.itemView.setOnLongClickListener(v -> {
+                longClickListener.onImageLongClick(path);
+                return true;
+            });
         }
     }
 
     @Override
     public int getItemCount() {
-        return images.size();
+        return imagePaths.size();
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {

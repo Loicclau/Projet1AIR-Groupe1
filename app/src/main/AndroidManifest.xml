@@ -45,6 +45,11 @@
             android:label="Mes Synthèses" />
 
         <activity
+            android:name=".SynthesisDetailActivity"
+            android:exported="false"
+            android:label="Détail de la synthèse" />
+
+        <activity
             android:name=".AddNoteActivity"
             android:exported="false" />
 
