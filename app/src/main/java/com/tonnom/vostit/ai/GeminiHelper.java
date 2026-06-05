@@ -19,10 +19,20 @@ public class GeminiHelper {
     }
 
     public ListenableFuture<GenerateContentResponse> extractTextFromImage(Bitmap bitmap) {
+        String prompt = "Tu es un expert en OCR (Reconnaissance Optique de Caractères) spécialisé dans les notes de cours manuscrites et les documents imprimés.\n" +
+                "\n" +
+                "TACHE :\n" +
+                "1. Extrais TOUT le texte lisible de cette image.\n" +
+                "2. Nettoie le texte : corrige les fautes de frappe ou d'orthographe évidentes dues à une mauvaise lecture.\n" +
+                "3. Reformule légèrement pour que les phrases soient grammaticalement correctes si le texte original est décousu, tout en restant STRICTEMENT fidèle au contenu.\n" +
+                "4. Structure le texte proprement (titres, listes à puces si approprié).\n" +
+                "5. Si le texte semble incohérent ou totalement illisible, réponds : \"[ERREUR: TEXTE ILLISIBLE]\".\n" +
+                "\n" +
+                "RETOURNE UNIQUEMENT LE TEXTE TRAITÉ.";
+
         Content content = new Content.Builder()
                 .addImage(bitmap)
-                .addText("Extrais tout le texte lisible de cette image de note de cours. " +
-                        "Retourne uniquement le texte brut, sans commentaires ni formatage markdown.")
+                .addText(prompt)
                 .build();
         
         return model.generateContent(content);

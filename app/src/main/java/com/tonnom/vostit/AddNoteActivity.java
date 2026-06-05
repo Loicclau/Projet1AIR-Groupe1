@@ -22,10 +22,20 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.tonnom.vostit.ai.GeminiHelper;
 import com.tonnom.vostit.database.NoteDatabase;
 import com.tonnom.vostit.model.Note;
 import com.tonnom.vostit.model.NoteImage;
 import com.tonnom.vostit.utils.CloudSyncHelper;
+import com.tonnom.vostit.utils.PdfExportHelper;
+import android.view.Menu;
+import android.view.MenuItem;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.ai.client.generativeai.type.GenerateContentResponse;
+import androidx.appcompat.app.AlertDialog;
+import android.widget.TextView;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -50,7 +60,9 @@ public class AddNoteActivity extends AppCompatActivity {
     private String selectedSubject;
     private SessionManager sessionManager;
     private CloudSyncHelper cloudSyncHelper;
+    private GeminiHelper geminiHelper;
     private View loadingOverlay;
+    private TextView tvLoadingMessage;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private Uri currentPhotoUri;
     private String currentPhotoPath;
@@ -59,6 +71,7 @@ public class AddNoteActivity extends AppCompatActivity {
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK) {
                     if (currentPhotoPath != null) {
+                        processImageForOCR(currentPhotoPath);
                         photoPaths.add(currentPhotoPath);
                         photoAdapter.notifyDataSetChanged();
                         recyclerPhotos.setVisibility(View.VISIBLE);
@@ -73,6 +86,7 @@ public class AddNoteActivity extends AppCompatActivity {
                     if (selectedImage != null) {
                         String path = copyUriToInternalStorage(selectedImage);
                         if (path != null) {
+                            processImageForOCR(path);
                             photoPaths.add(path);
                             photoAdapter.notifyDataSetChanged();
                             recyclerPhotos.setVisibility(View.VISIBLE);
@@ -88,7 +102,18 @@ public class AddNoteActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
         cloudSyncHelper = new CloudSyncHelper(this);
+        geminiHelper = new GeminiHelper(BuildConfig.GEMINI_API_KEY);
         loadingOverlay = findViewById(R.id.loading_overlay);
+        
+        // Recherche dynamique du TextView de chargement
+        View textChild = loadingOverlay.findViewById(android.R.id.text1);
+        if (textChild instanceof TextView) {
+            tvLoadingMessage = (TextView) textChild;
+        } else {
+            // Fallback : on cherche n'importe quel TextView dans l'overlay
+            findLoadingTextView(loadingOverlay);
+        }
+
         selectedSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
         editingNoteId = getIntent().getIntExtra("NOTE_ID", -1);
         
@@ -126,6 +151,60 @@ public class AddNoteActivity extends AppCompatActivity {
         findViewById(R.id.btn_sauvegarder).setOnClickListener(v -> sauvegarderNote());
     }
 
+    private void findLoadingTextView(View view) {
+        if (view instanceof TextView) {
+            tvLoadingMessage = (TextView) view;
+        } else if (view instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) view;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                findLoadingTextView(vg.getChildAt(i));
+                if (tvLoadingMessage != null) break;
+            }
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_add_note, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_share) {
+            shareNote();
+            return true;
+        } else if (id == R.id.action_export_pdf) {
+            exportNoteToPdf();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void shareNote() {
+        String content = etContenu.getText().toString();
+        if (content.isEmpty()) {
+            Toast.makeText(this, "Rien à partager", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_SUBJECT, etTitre.getText().toString());
+        intent.putExtra(Intent.EXTRA_TEXT, content);
+        startActivity(Intent.createChooser(intent, "Partager via"));
+    }
+
+    private void exportNoteToPdf() {
+        String titre = etTitre.getText().toString();
+        String contenu = etContenu.getText().toString();
+        if (titre.isEmpty() || contenu.isEmpty()) {
+            Toast.makeText(this, "Titre et contenu requis pour le PDF", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        PdfExportHelper.exportToPdf(this, titre, contenu);
+    }
+
     private void chargerDonneesNote() {
         executor.execute(() -> {
             Note note = NoteDatabase.getInstance(this).noteDao().getNoteById(editingNoteId);
@@ -146,6 +225,92 @@ public class AddNoteActivity extends AppCompatActivity {
                 }
             });
         });
+    }
+
+    private void processImageForOCR(String path) {
+        showLoading("Analyse de l'image par l'IA...");
+        
+        executor.execute(() -> {
+            Bitmap bitmap = loadResizedBitmap(path, 1024);
+            if (bitmap == null) {
+                hideLoading();
+                return;
+            }
+
+            ListenableFuture<GenerateContentResponse> future = geminiHelper.extractTextFromImage(bitmap);
+            Futures.addCallback(future, new FutureCallback<GenerateContentResponse>() {
+                @Override
+                public void onSuccess(GenerateContentResponse result) {
+                    runOnUiThread(() -> {
+                        hideLoading();
+                        String extractedText = result.getText();
+                        if (extractedText != null && !extractedText.contains("[ERREUR: TEXTE ILLISIBLE]")) {
+                            showOCRPreviewDialog(extractedText);
+                        } else {
+                            Toast.makeText(AddNoteActivity.this, "Impossible de lire le texte de l'image.", Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    runOnUiThread(() -> {
+                        hideLoading();
+                        Toast.makeText(AddNoteActivity.this, "Erreur OCR : " + t.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+                }
+            }, executor);
+        });
+    }
+
+    private void showOCRPreviewDialog(String text) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_ocr_preview, null);
+        EditText etResult = dialogView.findViewById(R.id.et_ocr_result);
+        etResult.setText(text);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(false)
+                .create();
+
+        dialogView.findViewById(R.id.btn_ocr_cancel).setOnClickListener(v -> dialog.dismiss());
+        dialogView.findViewById(R.id.btn_ocr_confirm).setOnClickListener(v -> {
+            String finalText = etResult.getText().toString().trim();
+            if (!finalText.isEmpty()) {
+                String currentContent = etContenu.getText().toString();
+                if (!currentContent.isEmpty()) currentContent += "\n\n";
+                etContenu.setText(currentContent + finalText);
+                new AlertDialog.Builder(this)
+                        .setTitle("Texte ajouté !")
+                        .setMessage("Le texte a été inséré dans votre note. Souhaitez-vous conserver l'image originale dans la note ?")
+                        .setPositiveButton("Conserver", null)
+                        .setNegativeButton("Supprimer l'image", (d, w) -> {
+                            if (!photoPaths.isEmpty()) {
+                                photoPaths.remove(photoPaths.size() - 1);
+                                photoAdapter.notifyDataSetChanged();
+                                if (photoPaths.isEmpty()) recyclerPhotos.setVisibility(View.GONE);
+                            }
+                        })
+                        .show();
+            }
+            dialog.dismiss();
+        });
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        dialog.show();
+    }
+
+    private void showLoading(String message) {
+        runOnUiThread(() -> {
+            if (tvLoadingMessage != null) tvLoadingMessage.setText(message);
+            loadingOverlay.setVisibility(View.VISIBLE);
+        });
+    }
+
+    private void hideLoading() {
+        runOnUiThread(() -> loadingOverlay.setVisibility(View.GONE));
     }
 
     private void openCamera() {
@@ -200,7 +365,7 @@ public class AddNoteActivity extends AppCompatActivity {
             return;
         }
 
-        loadingOverlay.setVisibility(View.VISIBLE);
+        showLoading("Sauvegarde en cours...");
 
         executor.execute(() -> {
             try {
@@ -224,7 +389,7 @@ public class AddNoteActivity extends AppCompatActivity {
                     note.setId(editingNoteId);
                 }
                 
-                // On récupère les nouvelles images à uploader
+                // On récupère les nouvelles images à uploader (optionnel maintenant)
                 List<String> newPaths = new ArrayList<>();
                 for (String path : photoPaths) {
                     if (!existingPhotoPaths.contains(path)) {
@@ -235,15 +400,13 @@ public class AddNoteActivity extends AppCompatActivity {
                     }
                 }
 
-                // Récupération de l'objet Note mis à jour (avec ses éventuelles URLs distantes déjà présentes)
                 Note noteToUpload = NoteDatabase.getInstance(this).noteDao().getNoteById(editingNoteId);
                 
-                // Lancement de la synchro Cloud avec callback pour fermer l'activité proprement
                 cloudSyncHelper.uploadNote(noteToUpload, newPaths, new CloudSyncHelper.SyncCallback() {
                     @Override
                     public void onSuccess() {
                         runOnUiThread(() -> {
-                            loadingOverlay.setVisibility(View.GONE);
+                            hideLoading();
                             Toast.makeText(AddNoteActivity.this, "Note enregistrée et synchronisée !", Toast.LENGTH_SHORT).show();
                             finish();
                         });
@@ -252,19 +415,41 @@ public class AddNoteActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(Exception e) {
                         runOnUiThread(() -> {
-                            loadingOverlay.setVisibility(View.GONE);
+                            hideLoading();
                             Toast.makeText(AddNoteActivity.this, "Sauvegarde locale OK, mais erreur Cloud : " + e.getMessage(), Toast.LENGTH_LONG).show();
-                            finish(); // On ferme quand même car la sauvegarde locale est réussie
+                            finish();
                         });
                     }
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
-                    loadingOverlay.setVisibility(View.GONE);
+                    hideLoading();
                     Toast.makeText(this, "Erreur lors de la sauvegarde : " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         });
+    }
+
+    private Bitmap loadResizedBitmap(String path, int maxSize) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, options);
+
+        int width = options.outWidth;
+        int height = options.outHeight;
+        int inSampleSize = 1;
+
+        if (width > maxSize || height > maxSize) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+            while ((halfHeight / inSampleSize) >= maxSize && (halfWidth / inSampleSize) >= maxSize) {
+                inSampleSize *= 2;
+            }
+        }
+
+        options.inSampleSize = inSampleSize;
+        options.inJustDecodeBounds = false;
+        return BitmapFactory.decodeFile(path, options);
     }
 
     private class PhotoPreviewAdapter extends RecyclerView.Adapter<PhotoPreviewAdapter.ViewHolder> {
