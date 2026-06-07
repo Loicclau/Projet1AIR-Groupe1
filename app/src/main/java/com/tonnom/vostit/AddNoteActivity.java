@@ -334,21 +334,20 @@ public class AddNoteActivity extends AppCompatActivity {
                     note.setId(editingNoteId);
                 }
                 
-                List<String> newPaths = new ArrayList<>();
                 for (String path : photoPaths) {
                     if (!existingPhotoPaths.contains(path)) {
                         NoteDatabase.getInstance(this).noteDao().insertImage(new NoteImage(editingNoteId, path));
-                        newPaths.add(path);
                     }
                 }
 
-                cloudSyncHelper.uploadNote(note, newPaths, new CloudSyncHelper.SyncCallback() {
+                cloudSyncHelper.uploadNote(note, new CloudSyncHelper.SyncCallback() {
                     @Override
                     public void onSuccess() {
                         runOnUiThread(() -> { hideLoading(); finish(); });
                     }
                     @Override
                     public void onFailure(Exception e) {
+                        Log.e("AddNoteActivity", "Erreur sync cloud", e);
                         runOnUiThread(() -> { hideLoading(); finish(); });
                     }
                 });

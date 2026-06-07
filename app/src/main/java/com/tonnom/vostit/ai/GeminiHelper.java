@@ -10,7 +10,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 public class GeminiHelper {
     private final GenerativeModelFutures model;
-    private static final String MODEL_NAME = "gemini-2.5-flash"; // gemini-1.5-flash est stable et performant pour l'OCR
+    private static final String MODEL_NAME = "gemini-2.5-flash";
 
     public GeminiHelper(String apiKey) {
         GenerativeModel gm = new GenerativeModel(MODEL_NAME, apiKey);

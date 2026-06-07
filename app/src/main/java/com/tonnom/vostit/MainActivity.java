@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Menu;
@@ -103,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
 
             chargerNotes();
         } catch (Throwable e) {
-            android.util.Log.e("MainActivity", "Crash in onCreate", e);
+            Log.e("MainActivity", "Crash in onCreate", e);
             Toast.makeText(this, "Erreur fatale: " + e.toString(), Toast.LENGTH_LONG).show();
             finish();
         }
@@ -141,87 +142,102 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void chargerNotes() {
+        // 1. Chargement local immédiat (cache de la dernière synchro)
         executor.execute(() -> {
-            // 1. Chargement local immédiat
-            List<Note> localNotes;
+            List<Note> initialNotes;
             if (selectedSubject != null) {
-                localNotes = NoteDatabase.getInstance(this).noteDao().getNotesBySubject(selectedSubject);
+                initialNotes = NoteDatabase.getInstance(this).noteDao().getNotesBySubject(selectedSubject);
             } else {
-                localNotes = NoteDatabase.getInstance(this).noteDao().getAllNotes();
+                initialNotes = NoteDatabase.getInstance(this).noteDao().getAllNotes();
             }
-            
             runOnUiThread(() -> {
-                adapter.setNotes(localNotes);
-                emptyStateLayout.setVisibility(localNotes.isEmpty() ? View.VISIBLE : View.GONE);
+                adapter.setNotes(initialNotes);
+                emptyStateLayout.setVisibility(initialNotes.isEmpty() ? View.VISIBLE : View.GONE);
             });
-
-            // 2. Branchement de l'écouteur Cloud en temps réel
-            if (selectedSubject != null) {
-                cloudSyncHelper.fetchCloudNotes(selectedSubject, cloudNotes -> {
-                    // 3. Persistance locale des notes du cloud pour éviter la disparition
-                    sauvegarderCloudEnLocal(cloudNotes);
-                    
-                    runOnUiThread(() -> {
-                        // Fusion intelligente pour l'affichage
-                        List<Note> allNotes = mergeNotes(localNotes, cloudNotes);
-                        adapter.setNotes(allNotes);
-                        emptyStateLayout.setVisibility(allNotes.isEmpty() ? View.VISIBLE : View.GONE);
-                    });
-                });
-            }
         });
-    }
 
-    private void sauvegarderCloudEnLocal(List<Note> cloudNotes) {
-        executor.execute(() -> {
-            for (Note cNote : cloudNotes) {
-                Note existing = NoteDatabase.getInstance(this).noteDao().getNoteByCloudId(cNote.getCloudId());
-                if (existing == null) {
-                    // Vérifier si une note avec le même titre existe déjà sans cloudId
-                    List<Note> sameTitle = NoteDatabase.getInstance(this).noteDao().getNotesBySubject(cNote.getSubject());
-                    boolean found = false;
-                    for (Note n : sameTitle) {
-                        if (n.getTitre().equals(cNote.getTitre()) && n.getCloudId() == null) {
-                            n.setCloudId(cNote.getCloudId());
-                            n.setRemoteUrlsString(cNote.getRemoteUrlsString());
-                            NoteDatabase.getInstance(this).noteDao().update(n);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        NoteDatabase.getInstance(this).noteDao().insert(cNote);
-                    }
+        // 2. Branchement de l'écouteur Cloud en temps réel pour synchronisation
+        cloudSyncHelper.fetchCloudNotes(selectedSubject, cloudNotes -> {
+            executor.execute(() -> {
+                // Synchronisation forcée avec le Cloud : Firebase est la source de vérité
+                synchroniserLocalAvecCloud(cloudNotes);
+                
+                // On recharge depuis la base locale qui est maintenant synchro
+                List<Note> syncedNotes;
+                if (selectedSubject != null) {
+                    syncedNotes = NoteDatabase.getInstance(this).noteDao().getNotesBySubject(selectedSubject);
                 } else {
-                    // Mise à jour de la note locale existante
-                    existing.setTitre(cNote.getTitre());
-                    existing.setContenu(cNote.getContenu());
-                    existing.setRemoteUrlsString(cNote.getRemoteUrlsString());
-                    NoteDatabase.getInstance(this).noteDao().update(existing);
+                    syncedNotes = NoteDatabase.getInstance(this).noteDao().getAllNotes();
                 }
-            }
+
+                runOnUiThread(() -> {
+                    adapter.setNotes(syncedNotes);
+                    emptyStateLayout.setVisibility(syncedNotes.isEmpty() ? View.VISIBLE : View.GONE);
+                    Log.d("MainActivity", "Notes synchronisées : " + syncedNotes.size());
+                });
+            });
         });
     }
 
-    private List<Note> mergeNotes(List<Note> local, List<Note> cloud) {
-        List<Note> combined = new ArrayList<>(local);
-        for (Note cNote : cloud) {
-            boolean alreadyExists = false;
-            for (Note lNote : local) {
-                // Comparaison par Cloud ID ou contenu pour identifier les mêmes notes
-                if ((lNote.getCloudId() != null && lNote.getCloudId().equals(cNote.getCloudId())) ||
-                    (lNote.getTitre().equals(cNote.getTitre()) && lNote.getAuthor().equals(cNote.getAuthor()))) {
-                    alreadyExists = true;
-                    // On peut mettre à jour l'ID Cloud local s'il manquait
-                    if (lNote.getCloudId() == null) lNote.setCloudId(cNote.getCloudId());
-                    break;
+    private void synchroniserLocalAvecCloud(List<Note> cloudNotes) {
+        NoteDatabase db = NoteDatabase.getInstance(this);
+        
+        // 1. Identifier les notes locales à supprimer (celles qui ne sont plus sur Firebase)
+        List<Note> allLocal;
+        if (selectedSubject != null) {
+            allLocal = db.noteDao().getNotesBySubject(selectedSubject);
+        } else {
+            allLocal = db.noteDao().getAllNotes();
+        }
+
+        for (Note localNote : allLocal) {
+            if (localNote.getCloudId() != null) {
+                boolean existsInCloud = false;
+                for (Note cNote : cloudNotes) {
+                    if (localNote.getCloudId().equals(cNote.getCloudId())) {
+                        existsInCloud = true;
+                        break;
+                    }
                 }
-            }
-            if (!alreadyExists) {
-                combined.add(cNote);
+                if (!existsInCloud) {
+                    // Supprimer localement car n'existe plus sur Firebase
+                    nettoyerImagesNote(localNote.getId());
+                    db.noteDao().delete(localNote);
+                    Log.d("MainActivity", "Note supprimée localement (absente du Cloud) : " + localNote.getTitre());
+                }
             }
         }
-        return combined;
+
+        // 2. Mettre à jour ou insérer les notes du Cloud
+        for (Note cNote : cloudNotes) {
+            Note existing = db.noteDao().getNoteByCloudId(cNote.getCloudId());
+            if (existing == null) {
+                db.noteDao().insert(cNote);
+            } else {
+                existing.setTitre(cNote.getTitre());
+                existing.setContenu(cNote.getContenu());
+                existing.setDate(cNote.getDate());
+                existing.setSubject(cNote.getSubject());
+                existing.setAuthor(cNote.getAuthor());
+                db.noteDao().update(existing);
+            }
+        }
+    }
+
+    private void nettoyerImagesNote(int noteId) {
+        List<NoteImage> images = NoteDatabase.getInstance(this).noteDao().getImagesForNote(noteId);
+        for (NoteImage img : images) {
+            try {
+                java.io.File file = new java.io.File(img.getImagePath());
+                if (file.exists()) {
+                    boolean deleted = file.delete();
+                    Log.d("MainActivity", "Fichier orphelin supprimé : " + img.getImagePath() + " (" + deleted + ")");
+                }
+            } catch (Exception e) {
+                Log.e("MainActivity", "Erreur suppression fichier", e);
+            }
+        }
+        // Le CASCADE de Room s'occupera de la table note_images
     }
 
     private void startCourseSynthesis() {
@@ -236,23 +252,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         executor.execute(() -> {
-            // Vérifier si une synthèse existe déjà localement
-            com.tonnom.vostit.model.Synthesis existing = NoteDatabase.getInstance(this).synthesisDao().getLatestForSubject(selectedSubject);
+            // Recalculer à chaque génération avec les données Firebase actuelles
+            // Nettoyage des anciennes synthèses pour ce sujet
+            NoteDatabase.getInstance(this).synthesisDao().deleteBySubject(selectedSubject);
 
-            if (existing != null) {
-                runOnUiThread(() -> {
-                    loadingOverlay.setVisibility(View.GONE);
-                    btnSynthesize.setEnabled(true);
-                    Toast.makeText(this, "Chargement de la synthèse sauvegardée", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(MainActivity.this, SynthesisDetailActivity.class);
-                    intent.putExtra("SYNTHESIS_ID", existing.getId());
-                    startActivity(intent);
-                });
-                return;
-            }
-
-            // Si aucune synthèse, on lance le processus IA
+            // On utilise les notes locales car elles sont synchronisées avec Firebase dans chargerNotes()
             List<Note> notes = NoteDatabase.getInstance(this).noteDao().getNotesBySubject(selectedSubject);
+            
             if (notes.isEmpty()) {
                 runOnUiThread(() -> {
                     loadingOverlay.setVisibility(View.GONE);
@@ -266,11 +272,15 @@ public class MainActivity extends AppCompatActivity {
             List<String> imagePaths = new ArrayList<>();
 
             for (Note note : notes) {
-                fullContent.append("NOTE: ").append(note.getTitre()).append("\n");
-                fullContent.append(note.getContenu()).append("\n\n");
-                List<NoteImage> images = NoteDatabase.getInstance(this).noteDao().getImagesForNote(note.getId());
-                for (NoteImage img : images) {
-                    imagePaths.add(img.getImagePath());
+                fullContent.append("TITRE: ").append(note.getTitre()).append("\n");
+                fullContent.append("CONTENU: ").append(note.getContenu()).append("\n\n");
+                
+                // Seul l'auteur voit ses propres images (locales)
+                if (note.getAuthor() != null && note.getAuthor().equals(sessionManager.getUsername())) {
+                    List<NoteImage> images = NoteDatabase.getInstance(this).noteDao().getImagesForNote(note.getId());
+                    for (NoteImage img : images) {
+                        imagePaths.add(img.getImagePath());
+                    }
                 }
             }
 

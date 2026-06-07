@@ -48,12 +48,13 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
                 .into(holder.imageView);
             
         holder.itemView.setOnClickListener(v -> {
-            android.app.Activity activity = (android.app.Activity) v.getContext();
-            Intent intent = new Intent(activity, FullScreenImageActivity.class);
+            android.content.Context context = v.getContext();
+            Intent intent = new Intent(context, FullScreenImageActivity.class);
             intent.putExtra("IMAGE_PATH", path);
-            activity.startActivity(intent);
-            // Animation fluide d'entrée
-            activity.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            context.startActivity(intent);
+            if (context instanceof android.app.Activity) {
+                ((android.app.Activity) context).overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            }
         });
 
         if (longClickListener != null) {

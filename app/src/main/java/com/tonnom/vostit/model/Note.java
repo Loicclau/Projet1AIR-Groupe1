@@ -17,10 +17,6 @@ public class Note {
     private String subject;
     private String author; // Username of the creator
     private String cloudId; // Unique ID for Firebase sync
-    private String remoteUrlsString; // URLs cloud séparées par des virgules
-
-    @Ignore
-    private List<String> remoteImageUrls;
 
     public Note() {
     }
@@ -49,24 +45,4 @@ public class Note {
 
     public String getCloudId() { return cloudId; }
     public void setCloudId(String cloudId) { this.cloudId = cloudId; }
-
-    public String getRemoteUrlsString() { return remoteUrlsString; }
-    public void setRemoteUrlsString(String remoteUrlsString) { this.remoteUrlsString = remoteUrlsString; }
-
-    public List<String> getRemoteImageUrls() {
-        if (remoteImageUrls == null) {
-            if (remoteUrlsString != null && !remoteUrlsString.isEmpty()) {
-                remoteImageUrls = new java.util.ArrayList<>(java.util.Arrays.asList(remoteUrlsString.split(",")));
-            } else {
-                remoteImageUrls = new java.util.ArrayList<>();
-            }
-        }
-        return remoteImageUrls;
-    }
-    public void setRemoteImageUrls(List<String> remoteImageUrls) {
-        this.remoteImageUrls = remoteImageUrls;
-        if (remoteImageUrls != null) {
-            this.remoteUrlsString = android.text.TextUtils.join(",", remoteImageUrls);
-        }
-    }
 }

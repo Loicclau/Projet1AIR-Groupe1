@@ -27,4 +27,7 @@ public interface SynthesisDao {
 
     @Query("DELETE FROM syntheses WHERE id = :id")
     void deleteById(int id);
+
+    @Query("DELETE FROM syntheses WHERE subject = :subject")
+    void deleteBySubject(String subject);
 }

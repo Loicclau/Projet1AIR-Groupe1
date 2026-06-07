@@ -97,7 +97,13 @@ public class NoteDetailActivity extends AppCompatActivity {
             return;
         }
         
-        List<NoteImage> localImages = NoteDatabase.getInstance(this).noteDao().getImagesForNote(note.getId());
+        // Seul l'auteur voit ses propres images (locales)
+        SessionManager sessionManager = new SessionManager(this);
+        boolean isAuthor = note.getAuthor() != null && note.getAuthor().equals(sessionManager.getUsername());
+        
+        List<NoteImage> localImages = isAuthor ? 
+                NoteDatabase.getInstance(this).noteDao().getImagesForNote(note.getId()) : 
+                new ArrayList<>();
 
         runOnUiThread(() -> {
             selectedSubjectFromNote = note.getSubject();
@@ -109,14 +115,6 @@ public class NoteDetailActivity extends AppCompatActivity {
             for (NoteImage img : localImages) {
                 allImagePaths.add(img.getImagePath());
             }
-            
-            if (note.getRemoteImageUrls() != null) {
-                for (String url : note.getRemoteImageUrls()) {
-                    if (!allImagePaths.contains(url)) {
-                        allImagePaths.add(url);
-                    }
-                }
-            }
 
             if (allImagePaths.isEmpty()) {
                 tvImagesLabel.setVisibility(View.GONE);
@@ -125,9 +123,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                 tvImagesLabel.setVisibility(View.VISIBLE);
                 recyclerImages.setVisibility(View.VISIBLE);
                 recyclerImages.setAdapter(new ImageAdapter(allImagePaths, path -> {
-                    if (!path.startsWith("http")) {
-                        confirmerSuppressionImage(path, note.getId());
-                    }
+                    confirmerSuppressionImage(path, note.getId());
                 }));
             }
         });
@@ -136,7 +132,7 @@ public class NoteDetailActivity extends AppCompatActivity {
     private void confirmerSuppressionNote() {
         new AlertDialog.Builder(this)
                 .setTitle("Supprimer la note")
-                .setMessage("Voulez-vous supprimer cette note et toutes ses images ?")
+                .setMessage("Voulez-vous supprimer cette note ? (Elle sera également supprimée du Cloud)")
                 .setPositiveButton("Supprimer", (dialog, which) -> supprimerNote(noteId))
                 .setNegativeButton("Annuler", null)
                 .show();
@@ -144,6 +140,16 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private void supprimerNote(int noteId) {
         executor.execute(() -> {
+            Note note = NoteDatabase.getInstance(this).noteDao().getNoteById(noteId);
+            if (note != null && note.getCloudId() != null) {
+                // Supprimer de Firebase également
+                com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("notes")
+                        .document(note.getCloudId())
+                        .delete()
+                        .addOnSuccessListener(aVoid -> android.util.Log.d("NoteDetail", "Note supprimée de Firebase"));
+            }
+
             List<NoteImage> images = NoteDatabase.getInstance(this).noteDao().getImagesForNote(noteId);
             for (NoteImage img : images) {
                 File file = new File(img.getImagePath());
