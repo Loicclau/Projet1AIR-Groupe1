@@ -139,22 +139,8 @@ public class AddNoteActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_share) { shareNote(); return true; }
         if (id == R.id.action_export_pdf) { exportNoteToPdf(); return true; }
         return super.onOptionsItemSelected(item);
-    }
-
-    private void shareNote() {
-        String content = etContenu.getText().toString();
-        if (content.isEmpty()) {
-            Toast.makeText(this, "Rien à partager", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_SUBJECT, etTitre.getText().toString());
-        intent.putExtra(Intent.EXTRA_TEXT, content);
-        startActivity(Intent.createChooser(intent, "Partager via"));
     }
 
     private void exportNoteToPdf() {
@@ -189,7 +175,7 @@ public class AddNoteActivity extends AppCompatActivity {
     }
 
     private void processImageForOCR(String path) {
-        showLoading("L'IA analyse vos notes...");
+        showLoading("Vostit analyse vos notes...");
         executor.execute(() -> {
             Bitmap bitmap = loadResizedBitmap(path, 1024);
             if (bitmap == null) {
@@ -210,7 +196,7 @@ public class AddNoteActivity extends AppCompatActivity {
                         if (extractedText != null && !extractedText.contains("[ERREUR: TEXTE ILLISIBLE]")) {
                             showOCRPreviewDialog(extractedText, path);
                         } else {
-                            Toast.makeText(AddNoteActivity.this, "L'IA n'a pas pu lire le texte.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(AddNoteActivity.this, "Impossible de lire le texte pour le moment.", Toast.LENGTH_LONG).show();
                         }
                     });
                 }
@@ -246,16 +232,11 @@ public class AddNoteActivity extends AppCompatActivity {
                 if (!currentContent.isEmpty()) currentContent += "\n\n";
                 etContenu.setText(currentContent + finalText);
                 
-                new AlertDialog.Builder(this, R.style.ModernDialog)
-                        .setTitle("Garder l'image ?")
-                        .setMessage("Le texte a été extrait. Souhaitez-vous conserver l'image originale dans la note ?")
-                        .setPositiveButton("Conserver", (d, w) -> {
-                            photoPaths.add(originalPath);
-                            photoAdapter.notifyDataSetChanged();
-                            recyclerPhotos.setVisibility(View.VISIBLE);
-                        })
-                        .setNegativeButton("Supprimer", null)
-                        .show();
+                // Correction : On ajoute directement l'image originale sans altérer son fond
+                // L'image reste intacte visuellement après validation
+                photoPaths.add(originalPath);
+                photoAdapter.notifyDataSetChanged();
+                recyclerPhotos.setVisibility(View.VISIBLE);
             }
             dialog.dismiss();
         });

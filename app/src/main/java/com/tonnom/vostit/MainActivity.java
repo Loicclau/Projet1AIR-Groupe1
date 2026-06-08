@@ -364,7 +364,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     String finalTxt = result.getText();
                     if (finalTxt == null || finalTxt.isEmpty()) {
-                        runOnUiThread(() -> Toast.makeText(MainActivity.this, "L'IA a bloqué le contenu pour des raisons de sécurité.", Toast.LENGTH_LONG).show());
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, "Le contenu a été bloqué pour des raisons de sécurité.", Toast.LENGTH_LONG).show());
                     } else {
                         // Sauvegarder dans la DB avant d'afficher
                         executor.execute(() -> {
@@ -380,7 +380,7 @@ public class MainActivity extends AppCompatActivity {
                         });
                     }
                 } catch (Exception e) {
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Erreur lors de la lecture de la réponse IA.", Toast.LENGTH_LONG).show());
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Erreur lors de la génération de la réponse.", Toast.LENGTH_LONG).show());
                 }
             }
 

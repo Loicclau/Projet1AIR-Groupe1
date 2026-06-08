@@ -127,7 +127,7 @@
         android:id="@+id/loading_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#99000000"
+        android:background="#CC1A1A2E"
         android:clickable="true"
         android:focusable="true"
         android:visibility="gone">

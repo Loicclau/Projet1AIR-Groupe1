@@ -46,7 +46,7 @@
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="4dp"
-                    android:text="IA"
+                    android:text="Vostit"
                     android:textColor="?attr/colorOnSecondaryContainer"
                     android:textSize="10sp"
                     android:fontFamily="sans-serif-black" />
@@ -81,7 +81,7 @@
             android:maxLines="3"
             android:textColor="?attr/colorOnSurface"
             android:textSize="15sp"
-            tools:text="Voici un aperçu de la synthèse générée par l'IA pour ce cours. Elle contient les points clés et les définitions importantes." />
+            tools:text="Voici un aperçu de la synthèse générée par Vostit pour ce cours. Elle contient les points clés et les définitions importantes." />
 
     </LinearLayout>
 

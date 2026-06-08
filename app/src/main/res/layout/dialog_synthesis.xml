@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-black"
-            android:text="Synthèse IA"
+            android:text="Synthèse Vostit"
             android:textColor="?attr/colorPrimary"
             android:textSize="24sp" />
 
@@ -43,7 +43,7 @@
                 android:lineSpacingMultiplier="1.5"
                 android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp"
-                tools:text="Contenu de la synthèse générée par l'IA..." />
+                tools:text="Contenu de la synthèse générée par Vostit..." />
 
         </androidx.core.widget.NestedScrollView>
 

@@ -1,17 +1,45 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Base.Theme.VOSTIT" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorSecondary">@color/secondary</item>
-        <item name="android:windowBackground">@color/background_dark</item>
+    <style name="Base.Theme.VOSTIT" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/vostit_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/vostit_secondary</item>
+        <item name="colorTertiary">@color/vostit_accent</item>
+        <item name="android:windowBackground">@color/bg_dark</item>
         <item name="colorSurface">@color/surface_dark</item>
-        <item name="colorOnSurface">@color/on_surface_dark</item>
-        <item name="colorOnSurfaceVariant">@color/on_surface_variant_dark</item>
-        <item name="android:statusBarColor">@color/background_dark</item>
+        <item name="colorSurfaceVariant">@color/surface_variant_dark</item>
+        <item name="android:statusBarColor">@color/bg_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
-    <style name="ModernDialog" parent="Theme.Material3.DayNight.Dialog">
+    <style name="PremiumCard" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">28dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="strokeColor">#1AFFFFFF</item>
+        <item name="cardBackgroundColor">@color/surface_dark</item>
+    </style>
+
+    <style name="PremiumButton" parent="Widget.Material3.Button">
+        <item name="cornerRadius">20dp</item>
+        <item name="android:paddingVertical">16dp</item>
+        <item name="android:fontFamily">sans-serif-black</item>
+        <item name="android:letterSpacing">0.05</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="PremiumInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">20dp</item>
+        <item name="boxCornerRadiusTopEnd">20dp</item>
+        <item name="boxCornerRadiusBottomStart">20dp</item>
+        <item name="boxCornerRadiusBottomEnd">20dp</item>
+        <item name="boxStrokeWidth">1.5dp</item>
+        <item name="boxStrokeColor">@color/vostit_primary</item>
+    </style>
+
+    <style name="ModernCardView" parent="PremiumCard" />
+    <style name="ModernButton" parent="PremiumButton" />
+    <style name="ModernTextInputLayout" parent="PremiumInput" />
+    <style name="ModernDialog" parent="Theme.Material3.Dark.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowIsFloating">true</item>
-        <item name="android:windowContentOverlay">@null</item>
     </style>
 </resources>

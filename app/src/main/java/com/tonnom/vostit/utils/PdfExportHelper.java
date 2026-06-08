@@ -160,7 +160,7 @@ public class PdfExportHelper {
         Paint footerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         footerPaint.setTextSize(9);
         footerPaint.setColor(COLOR_TEXT_LIGHT);
-        String footerText = "VOST-IT - Document généré par IA - Page " + pageNumber;
+        String footerText = "VOST-IT - Document généré par Vostit - Page " + pageNumber;
         canvas.drawText(footerText, MARGIN, PAGE_HEIGHT - 25, footerPaint);
         
         Paint linePaint = new Paint();

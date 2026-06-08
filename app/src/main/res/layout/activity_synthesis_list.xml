@@ -43,16 +43,14 @@
 
         <ImageView
             android:id="@+id/iv_empty_synth"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:alpha="0.2"
-            android:src="@android:drawable/ic_menu_edit"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:src="@drawable/logo_vostit_themed"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.4"
-            app:tint="?attr/colorPrimary" />
+            app:layout_constraintVertical_bias="0.4" />
 
         <TextView
             android:layout_width="0dp"

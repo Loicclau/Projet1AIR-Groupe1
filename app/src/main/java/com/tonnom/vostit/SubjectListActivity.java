@@ -61,7 +61,7 @@ public class SubjectListActivity extends AppCompatActivity {
             if (year.contains("3ème")) return Arrays.asList("CFAO", "Maille", "Filage", "Qualité et confection", "Management", "Gestion et organisation", "Supply Chain", "Textile intelligent");
         } else if ("Informatique et Réseaux".equals(specialty)) {
             if (year.contains("1ère")) return Arrays.asList("Systèmes d'exploitation", "Unix base", "AOO Java", "BI", "SGBD", "Modélisation UML", "Statistiques et systèmes stochastiques");
-            if (year.contains("2ème")) return Arrays.asList("Robotique", "Fouille de données", "Théorie des langages", "Vostit (IA)", "Computer Graphics", "Deep Learning", "Cloud Computing", "Réseaux", "Compilation", "Cryptographie", "Initiation à la recherche", "Écoconception", "Analyse des risques et prévention");
+            if (year.contains("2ème")) return Arrays.asList("Robotique", "Fouille de données", "Théorie des langages", "Computer Graphics", "Cloud Computing", "Réseaux", "Compilation", "Cryptographie", "Initiation à la recherche", "Écoconception", "Analyse des risques et prévention");
             if (year.contains("3ème")) return Arrays.asList("Algorithmes distribués", "NoSQL", "Architecture Big Data", "Mainframe", "Programmation iOS", "Moversys", "Programmation Android", "Programmation fonctionnelle", "Temps réel", "Applications n-tiers", "Mobilité et réseaux");
         } else if ("Cycle post-bac intégré".equals(specialty)) {
             if (year.contains("1ère")) return Arrays.asList("Régimes variables", "Transformation de la matière", "Chimie organique", "Mécanique du point", "EC Informatique", "Mécanique générale", "Électrocinétique");

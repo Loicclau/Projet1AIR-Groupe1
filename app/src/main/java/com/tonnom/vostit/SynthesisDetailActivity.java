@@ -80,8 +80,8 @@ public class SynthesisDetailActivity extends AppCompatActivity {
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMMM yyyy 'à' HH:mm", Locale.getDefault());
         tvDate.setText("Généré le " + sdf.format(new Date(currentSynthesis.getTimestamp())));
 
-        int primaryColor = ContextCompat.getColor(this, R.color.primary);
-        int secondaryColor = ContextCompat.getColor(this, R.color.secondary);
+        int primaryColor = ContextCompat.getColor(this, R.color.vostit_primary);
+        int secondaryColor = ContextCompat.getColor(this, R.color.vostit_secondary);
 
         tvContent.setText(SynthesisFormatter.format(currentSynthesis.getContent(), primaryColor, secondaryColor));
         

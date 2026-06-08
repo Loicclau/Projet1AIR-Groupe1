@@ -13,30 +13,30 @@
         android:background="@android:color/transparent"
         app:elevation="0dp">
 
-        <LinearLayout
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar_selection"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="24dp">
+            android:layout_height="?attr/actionBarSize"
+            android:paddingHorizontal="16dp">
 
             <TextView
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:fontFamily="sans-serif-black"
-                android:text="Spécialités"
+                android:text="Vostit"
                 android:textColor="?attr/colorPrimary"
-                android:textSize="32sp" />
+                android:textSize="28sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_logout"
                 style="@style/Widget.Material3.Button.IconButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
+                android:layout_gravity="end"
                 app:icon="@android:drawable/ic_lock_power_off"
                 app:iconTint="@color/error" />
-        </LinearLayout>
+
+        </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -48,73 +48,76 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="20dp">
 
+            <!-- Assistant Card Premium -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="32dp"
-                app:cardCornerRadius="28dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                app:cardCornerRadius="32dp"
+                app:cardElevation="12dp"
                 app:strokeWidth="0dp">
 
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
+                    android:background="@drawable/grad_assistant"
+                    android:padding="28dp">
 
                     <TextView
+                        android:id="@+id/tv_ai_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="sans-serif-black"
-                        android:letterSpacing="0.1"
                         android:text="Assistant Vostit"
-                        android:textAllCaps="true"
-                        android:textColor="?attr/colorOnSecondaryContainer"
-                        android:textSize="12sp" />
+                        android:textColor="@android:color/white"
+                        android:textSize="24sp" />
 
                     <TextView
+                        android:id="@+id/tv_ai_desc"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_below="@id/tv_ai_title"
                         android:layout_marginTop="8dp"
-                        android:fontFamily="sans-serif"
-                        android:text="Consultez vos synthèses générées pour réviser plus efficacement."
-                        android:textColor="?attr/colorOnSecondaryContainer"
-                        android:textSize="16sp" />
+                        android:alpha="0.9"
+                        android:text="Boostez vos révisions grâce à Vostit !"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_view_syntheses"
-                        style="@style/ModernButton"
+                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_below="@id/tv_ai_desc"
                         android:layout_marginTop="20dp"
-                        android:text="Voir mes synthèses"
-                        android:textColor="?attr/colorOnSecondary"
-                        app:backgroundTint="?attr/colorSecondary"
+                        android:text="Accéder aux synthèses Vostit"
+                        android:textColor="@color/black"
+                        app:backgroundTint="@android:color/white"
+                        app:cornerRadius="16dp"
                         app:icon="@drawable/ic_synthesis"
-                        app:iconTint="?attr/colorOnSecondary" />
-                </LinearLayout>
+                        app:iconTint="@color/black" />
+                </RelativeLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="4dp"
                 android:layout_marginBottom="16dp"
                 android:fontFamily="sans-serif-black"
-                android:letterSpacing="0.1"
-                android:text="Sélectionnez votre spécialité"
-                android:textAllCaps="true"
+                android:letterSpacing="0.05"
+                android:text="VOTRE FORMATION"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="12sp" />
+                android:textSize="13sp" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_subjects"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 tools:listitem="@layout/item_subject" />
 
         </LinearLayout>
