@@ -122,6 +122,14 @@ public class SynthesisListActivity extends AppCompatActivity {
             holder.tvSubject.setText(s.getSubject());
             holder.tvDate.setText(dateFormat.format(new Date(s.getTimestamp())));
             holder.tvPreview.setText(s.getContent());
+
+            if (s.getYear() != null) {
+                holder.tvInfo.setVisibility(View.VISIBLE);
+                holder.tvInfo.setText(s.getYear());
+            } else {
+                holder.tvInfo.setVisibility(View.GONE);
+            }
+
             holder.itemView.setOnClickListener(v -> listener.onItemClick(s));
         }
 
@@ -131,12 +139,13 @@ public class SynthesisListActivity extends AppCompatActivity {
         }
 
         static class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvSubject, tvDate, tvPreview;
+            TextView tvSubject, tvDate, tvPreview, tvInfo;
             ViewHolder(View view) {
                 super(view);
                 tvSubject = view.findViewById(R.id.tv_synthesis_subject);
                 tvDate = view.findViewById(R.id.tv_synthesis_date);
                 tvPreview = view.findViewById(R.id.tv_synthesis_preview);
+                tvInfo = view.findViewById(R.id.tv_synthesis_info);
             }
         }
     }

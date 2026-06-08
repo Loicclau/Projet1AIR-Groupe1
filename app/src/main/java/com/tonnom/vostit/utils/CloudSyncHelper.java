@@ -12,6 +12,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.tonnom.vostit.SessionManager;
 import com.tonnom.vostit.database.NoteDatabase;
 import com.tonnom.vostit.model.Note;
+import com.tonnom.vostit.model.Synthesis;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,7 +75,10 @@ public class CloudSyncHelper {
         data.put("date", note.getDate());
         data.put("subject", note.getSubject());
         data.put("author", username);
-        data.put("timestamp", System.currentTimeMillis());
+        
+        long ts = note.getTimestamp() > 0 ? note.getTimestamp() : System.currentTimeMillis();
+        data.put("timestamp", ts);
+        note.setTimestamp(ts);
 
         String docId = note.getCloudId();
         
@@ -156,6 +160,8 @@ public class CloudSyncHelper {
                         note.setDate(doc.getString("date"));
                         note.setSubject(doc.getString("subject"));
                         note.setAuthor(doc.getString("author"));
+                        Long ts = doc.getLong("timestamp");
+                        if (ts != null) note.setTimestamp(ts);
                         cloudNotes.add(note);
                     } catch (Exception docEx) {
                         Log.e(TAG, "Erreur lecture document : " + doc.getId(), docEx);
@@ -177,5 +183,51 @@ public class CloudSyncHelper {
 
     public interface OnCloudFetchListener {
         void onFetch(List<Note> notes);
+    }
+
+    public void uploadSynthesis(com.tonnom.vostit.model.Synthesis synthesis) {
+        if (synthesis == null) return;
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("subject", synthesis.getSubject());
+        data.put("content", synthesis.getContent());
+        data.put("timestamp", synthesis.getTimestamp());
+        data.put("specialty", synthesis.getSpecialty());
+        data.put("year", synthesis.getYear());
+
+        // On utilise le sujet comme ID de document pour qu'il n'y en ait qu'un seul par cours
+        db.collection("syntheses").document(synthesis.getSubject())
+                .set(data)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Synthèse partagée sur le Cloud pour " + synthesis.getSubject()))
+                .addOnFailureListener(e -> Log.e(TAG, "Erreur partage synthèse", e));
+    }
+
+    public interface OnSynthesisFetchListener {
+        void onFetch(com.tonnom.vostit.model.Synthesis synthesis);
+    }
+
+    public void fetchLatestSynthesis(String subject, OnSynthesisFetchListener listener) {
+        if (subject == null) return;
+        
+        db.collection("syntheses").document(subject)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        Synthesis s = new Synthesis(
+                                doc.getString("subject"),
+                                doc.getString("content"),
+                                doc.getLong("timestamp") != null ? doc.getLong("timestamp") : 0
+                        );
+                        s.setSpecialty(doc.getString("specialty"));
+                        s.setYear(doc.getString("year"));
+                        listener.onFetch(s);
+                    } else {
+                        listener.onFetch(null);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erreur fetch synthèse", e);
+                    listener.onFetch(null);
+                });
     }
 }

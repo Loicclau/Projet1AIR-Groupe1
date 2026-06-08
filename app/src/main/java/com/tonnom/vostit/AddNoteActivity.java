@@ -123,6 +123,8 @@ public class AddNoteActivity extends AppCompatActivity {
 
         if (editingNoteId != -1) {
             chargerDonneesNote();
+        } else {
+            genererTitreAutomatique();
         }
 
         findViewById(R.id.btn_camera).setOnClickListener(v -> openCamera());
@@ -169,6 +171,19 @@ public class AddNoteActivity extends AppCompatActivity {
                         recyclerPhotos.setVisibility(View.VISIBLE);
                         photoAdapter.notifyDataSetChanged();
                     }
+                }
+            });
+        });
+    }
+
+    private void genererTitreAutomatique() {
+        String username = sessionManager.getUsername();
+        executor.execute(() -> {
+            int count = NoteDatabase.getInstance(this).noteDao().countNotesByUser(username);
+            String autoTitle = "Note " + (count + 1) + " - " + username;
+            runOnUiThread(() -> {
+                if (etTitre.getText().toString().trim().isEmpty()) {
+                    etTitre.setText(autoTitle);
                 }
             });
         });
@@ -290,10 +305,8 @@ public class AddNoteActivity extends AppCompatActivity {
     }
 
     private void sauvegarderNote() {
-        String titre = etTitre.getText().toString().trim();
+        final String titre = etTitre.getText().toString().trim().isEmpty() ? "Sans titre" : etTitre.getText().toString().trim();
         String contenu = etContenu.getText().toString().trim();
-
-        if (titre.isEmpty()) { etTitre.setError("Titre obligatoire"); return; }
 
         showLoading("Sauvegarde et synchronisation...");
         executor.execute(() -> {
@@ -303,12 +316,14 @@ public class AddNoteActivity extends AppCompatActivity {
                     note = NoteDatabase.getInstance(this).noteDao().getNoteById(editingNoteId);
                     note.setTitre(titre);
                     note.setContenu(contenu);
+                    note.setTimestamp(System.currentTimeMillis());
                     NoteDatabase.getInstance(this).noteDao().update(note);
                 } else {
                     note = new Note();
                     note.setTitre(titre);
                     note.setContenu(contenu);
                     note.setDate(new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date()));
+                    note.setTimestamp(System.currentTimeMillis());
                     note.setSubject(selectedSubject);
                     note.setAuthor(sessionManager.getUsername());
                     editingNoteId = (int) NoteDatabase.getInstance(this).noteDao().insert(note);

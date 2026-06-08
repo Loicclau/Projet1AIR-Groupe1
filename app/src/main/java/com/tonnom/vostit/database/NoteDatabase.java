@@ -11,7 +11,7 @@ import com.tonnom.vostit.model.NoteImage;
 import com.tonnom.vostit.model.Synthesis;
 import com.tonnom.vostit.model.User;
 
-@Database(entities = {Note.class, NoteImage.class, User.class, Synthesis.class}, version = 8)
+@Database(entities = {Note.class, NoteImage.class, User.class, Synthesis.class}, version = 10)
 public abstract class NoteDatabase extends RoomDatabase {
 
     private static NoteDatabase instance;

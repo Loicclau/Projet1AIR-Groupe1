@@ -51,7 +51,7 @@
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:hint="@string/note_content_hint"
             app:boxCornerRadiusBottomEnd="16dp"
             app:boxCornerRadiusBottomStart="16dp"
@@ -72,51 +72,63 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_add_photos"
             android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
+            android:layout_height="100dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
             android:orientation="horizontal"
             android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@+id/ll_actions"
+            app:layout_constraintBottom_toTopOf="@+id/ll_actions_container"
             app:layout_constraintTop_toBottomOf="@+id/til_note_content"
             tools:visibility="visible" />
 
         <LinearLayout
-            android:id="@+id/ll_actions"
+            android:id="@+id/ll_actions_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             app:layout_constraintBottom_toBottomOf="parent">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_camera"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                app:cornerRadius="16dp"
-                app:icon="@android:drawable/ic_menu_camera" />
+            <!-- Row 1: Photo Actions -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_gallery"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                app:cornerRadius="16dp"
-                app:icon="@android:drawable/ic_menu_gallery" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_gallery"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="Importer"
+                    android:textAllCaps="false"
+                    app:cornerRadius="16dp"
+                    app:icon="@android:drawable/ic_menu_gallery" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_camera"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_weight="1"
+                    android:text="Photo"
+                    android:textAllCaps="false"
+                    app:cornerRadius="16dp"
+                    app:icon="@android:drawable/ic_menu_camera" />
+
+            </LinearLayout>
+
+            <!-- Row 2: Save Action -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_sauvegarder"
                 style="@style/ModernButton"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_weight="2.5"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
                 android:text="@string/save_note"
-                android:textSize="16sp" />
+                android:textSize="16sp"
+                app:cornerRadius="16dp" />
 
         </LinearLayout>
 

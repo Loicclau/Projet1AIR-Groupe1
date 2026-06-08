@@ -17,6 +17,7 @@ public class Note {
     private String subject;
     private String author; // Username of the creator
     private String cloudId; // Unique ID for Firebase sync
+    private long timestamp;
 
     public Note() {
     }
@@ -45,4 +46,7 @@ public class Note {
 
     public String getCloudId() { return cloudId; }
     public void setCloudId(String cloudId) { this.cloudId = cloudId; }
+
+    public long getTimestamp() { return timestamp; }
+    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
 }

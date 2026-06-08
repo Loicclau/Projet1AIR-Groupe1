@@ -54,6 +54,16 @@
         </LinearLayout>
 
         <TextView
+            android:id="@+id/tv_synthesis_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="14sp"
+            tools:text="Informatique et Réseaux - 2ème année" />
+
+        <TextView
             android:id="@+id/tv_synthesis_date"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

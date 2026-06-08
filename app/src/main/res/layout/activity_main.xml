@@ -17,6 +17,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            android:layout_marginTop="16dp"
             app:navigationIcon="?attr/homeAsUpIndicator"
             app:titleCentered="true">
 
@@ -90,35 +91,42 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- FABs Premium Container -->
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:padding="24dp">
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/btn_synthesize_modern"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:contentDescription="Synthèse"
-            android:src="@drawable/ic_synthesis"
+            android:layout_weight="1.2"
+            android:layout_marginEnd="8dp"
+            android:text="Accéder aux synthèses Vostit"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:alpha="1.0"
             app:backgroundTint="?attr/colorSecondary"
-            app:fabSize="normal"
-            app:tint="?attr/colorOnSecondary" />
+            app:icon="@android:drawable/ic_menu_edit"
+            app:iconTint="#FFFFFF"
+            app:iconTintMode="src_in" />
 
         <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/fab_add"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:text="Nouvelle note"
+            android:layout_weight="1"
+            android:text="Prendre une note"
             android:textColor="?attr/colorOnPrimary"
+            android:textSize="11sp"
             app:backgroundTint="?attr/colorPrimary"
             app:icon="@android:drawable/ic_input_add"
             app:iconTint="?attr/colorOnPrimary" />
 
-    </RelativeLayout>
+    </LinearLayout>
 
     <!-- Overlay de chargement Premium Blur-effect -->
     <FrameLayout

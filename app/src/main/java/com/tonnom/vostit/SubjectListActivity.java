@@ -42,6 +42,8 @@ public class SubjectListActivity extends AppCompatActivity {
         recyclerView.setAdapter(new SubjectAdapter(subjects, subject -> {
             Intent intent = new Intent(SubjectListActivity.this, MainActivity.class);
             intent.putExtra("SELECTED_SUBJECT", subject);
+            intent.putExtra("SELECTED_SPECIALTY", specialty);
+            intent.putExtra("SELECTED_YEAR", year);
             startActivity(intent);
         }));
     }

@@ -52,4 +52,10 @@ public interface NoteDao {
 
     @Query("DELETE FROM note_images WHERE imagePath = :path")
     void deleteImageByPath(String path);
+
+    @Query("SELECT COUNT(*) FROM notes WHERE author = :username")
+    int countNotesByUser(String username);
+
+    @Query("SELECT MAX(timestamp) FROM notes WHERE subject = :subject")
+    long getLatestNoteTimestampForSubject(String subject);
 }

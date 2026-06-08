@@ -28,6 +28,7 @@ import com.tonnom.vostit.ai.GeminiHelper;
 import com.tonnom.vostit.database.NoteDatabase;
 import com.tonnom.vostit.model.Note;
 import com.tonnom.vostit.model.NoteImage;
+import com.tonnom.vostit.model.Synthesis;
 import com.google.ai.client.generativeai.type.GenerateContentResponse;
 
 import java.util.ArrayList;
@@ -46,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
     private View loadingOverlay;
     private View btnSynthesize;
     private String selectedSubject;
+    private String selectedSpecialty;
+    private String selectedYear;
     private SessionManager sessionManager;
     private CloudSyncHelper cloudSyncHelper;
     private ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
@@ -67,6 +70,8 @@ public class MainActivity extends AppCompatActivity {
             geminiHelper = new GeminiHelper(BuildConfig.GEMINI_API_KEY);
 
             selectedSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
+            selectedSpecialty = getIntent().getStringExtra("SELECTED_SPECIALTY");
+            selectedYear = getIntent().getStringExtra("SELECTED_YEAR");
             
             Toolbar toolbar = findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
@@ -174,6 +179,35 @@ public class MainActivity extends AppCompatActivity {
                     adapter.setNotes(syncedNotes);
                     emptyStateLayout.setVisibility(syncedNotes.isEmpty() ? View.VISIBLE : View.GONE);
                     Log.d("MainActivity", "Notes synchronisées : " + syncedNotes.size());
+                    
+                    // Mise à jour de l'état du bouton de synthèse
+                    verifierEtatBoutonSynthese();
+                });
+            });
+        });
+    }
+
+    private void verifierEtatBoutonSynthese() {
+        if (selectedSubject == null) return;
+        
+        executor.execute(() -> {
+            long latestNoteTs = NoteDatabase.getInstance(this).noteDao().getLatestNoteTimestampForSubject(selectedSubject);
+            Synthesis latestLocal = NoteDatabase.getInstance(this).synthesisDao().getLatestForSubject(selectedSubject);
+
+            cloudSyncHelper.fetchLatestSynthesis(selectedSubject, cloudSynthesis -> {
+                Synthesis bestSynthesis = cloudSynthesis != null ? cloudSynthesis : latestLocal;
+                
+                runOnUiThread(() -> {
+                    if (btnSynthesize instanceof ExtendedFloatingActionButton) {
+                        ExtendedFloatingActionButton fab = (ExtendedFloatingActionButton) btnSynthesize;
+                        if (bestSynthesis != null && bestSynthesis.getTimestamp() >= latestNoteTs) {
+                            fab.setText("Voir le résumé Vostit");
+                            fab.setIconResource(android.R.drawable.ic_menu_agenda);
+                        } else {
+                            fab.setText("Générer le résumé");
+                            fab.setIconResource(R.drawable.ic_synthesis);
+                        }
+                    }
                 });
             });
         });
@@ -219,6 +253,7 @@ public class MainActivity extends AppCompatActivity {
                 existing.setDate(cNote.getDate());
                 existing.setSubject(cNote.getSubject());
                 existing.setAuthor(cNote.getAuthor());
+                existing.setTimestamp(cNote.getTimestamp());
                 db.noteDao().update(existing);
             }
         }
@@ -252,44 +287,72 @@ public class MainActivity extends AppCompatActivity {
         });
 
         executor.execute(() -> {
-            // Recalculer à chaque génération avec les données Firebase actuelles
-            // Nettoyage des anciennes synthèses pour ce sujet
-            NoteDatabase.getInstance(this).synthesisDao().deleteBySubject(selectedSubject);
-
-            // On utilise les notes locales car elles sont synchronisées avec Firebase dans chargerNotes()
+            // 0. Vérifier s'il y a des notes pour cette matière
             List<Note> notes = NoteDatabase.getInstance(this).noteDao().getNotesBySubject(selectedSubject);
-            
             if (notes.isEmpty()) {
                 runOnUiThread(() -> {
                     loadingOverlay.setVisibility(View.GONE);
                     btnSynthesize.setEnabled(true);
-                    Toast.makeText(this, "Aucune note à synthétiser", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Ajoutez d'abord des notes pour générer un résumé.", Toast.LENGTH_SHORT).show();
                 });
                 return;
             }
 
-            StringBuilder fullContent = new StringBuilder();
-            List<String> imagePaths = new ArrayList<>();
+            // 1. Vérifier s'il existe une synthèse (Cloud ou Locale)
+            Synthesis latestLocal = NoteDatabase.getInstance(this).synthesisDao().getLatestForSubject(selectedSubject);
+            long latestNoteTs = NoteDatabase.getInstance(this).noteDao().getLatestNoteTimestampForSubject(selectedSubject);
 
-            for (Note note : notes) {
-                fullContent.append("TITRE: ").append(note.getTitre()).append("\n");
-                fullContent.append("CONTENU: ").append(note.getContenu()).append("\n\n");
-                
-                // Seul l'auteur voit ses propres images (locales)
-                if (note.getAuthor() != null && note.getAuthor().equals(sessionManager.getUsername())) {
-                    List<NoteImage> images = NoteDatabase.getInstance(this).noteDao().getImagesForNote(note.getId());
-                    for (NoteImage img : images) {
-                        imagePaths.add(img.getImagePath());
+            cloudSyncHelper.fetchLatestSynthesis(selectedSubject, cloudSynthesis -> {
+                executor.execute(() -> {
+                    Synthesis synthesisToUse = cloudSynthesis != null ? cloudSynthesis : latestLocal;
+
+                    if (synthesisToUse != null && synthesisToUse.getTimestamp() >= latestNoteTs) {
+                        // La synthèse est à jour, on l'affiche directement
+                        if (cloudSynthesis != null && (latestLocal == null || cloudSynthesis.getTimestamp() > latestLocal.getTimestamp())) {
+                            NoteDatabase.getInstance(this).synthesisDao().deleteBySubject(selectedSubject);
+                            NoteDatabase.getInstance(this).synthesisDao().insert(cloudSynthesis);
+                        }
+                        
+                        final Synthesis finalS = NoteDatabase.getInstance(this).synthesisDao().getLatestForSubject(selectedSubject);
+
+                        runOnUiThread(() -> {
+                            loadingOverlay.setVisibility(View.GONE);
+                            btnSynthesize.setEnabled(true);
+                            Intent intent = new Intent(MainActivity.this, SynthesisDetailActivity.class);
+                            intent.putExtra("SYNTHESIS_ID", finalS.getId());
+                            startActivity(intent);
+                        });
+                    } else {
+                        // Générer une nouvelle synthèse car absente ou obsolète
+                        genererNouvelleSynthese(notes);
                     }
+                });
+            });
+        });
+    }
+
+    private void genererNouvelleSynthese(List<Note> notes) {
+        StringBuilder fullContent = new StringBuilder();
+        List<String> imagePaths = new ArrayList<>();
+
+        for (Note note : notes) {
+            fullContent.append("TITRE: ").append(note.getTitre()).append("\n");
+            fullContent.append("CONTENU: ").append(note.getContenu()).append("\n\n");
+            
+            // Seul l'auteur voit ses propres images (locales)
+            if (note.getAuthor() != null && note.getAuthor().equals(sessionManager.getUsername())) {
+                List<NoteImage> images = NoteDatabase.getInstance(this).noteDao().getImagesForNote(note.getId());
+                for (NoteImage img : images) {
+                    imagePaths.add(img.getImagePath());
                 }
             }
+        }
 
-            if (imagePaths.isEmpty()) {
-                performSynthesis(fullContent.toString());
-            } else {
-                processImagesAndSynthesize(imagePaths, fullContent);
-            }
-        });
+        if (imagePaths.isEmpty()) {
+            performSynthesis(fullContent.toString());
+        } else {
+            processImagesAndSynthesize(imagePaths, fullContent);
+        }
     }
 
     private void processImagesAndSynthesize(List<String> paths, StringBuilder content) {
@@ -368,10 +431,19 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         // Sauvegarder dans la DB avant d'afficher
                         executor.execute(() -> {
-                            com.tonnom.vostit.model.Synthesis newSynthesis = new com.tonnom.vostit.model.Synthesis(
+                            Synthesis newSynthesis = new Synthesis(
                                     selectedSubject, finalTxt, System.currentTimeMillis()
                             );
+                            newSynthesis.setSpecialty(selectedSpecialty);
+                            newSynthesis.setYear(selectedYear);
+                            
+                            // 1. Partager sur le Cloud pour les autres
+                            cloudSyncHelper.uploadSynthesis(newSynthesis);
+                            
+                            // 2. Sauvegarder localement
+                            NoteDatabase.getInstance(MainActivity.this).synthesisDao().deleteBySubject(selectedSubject);
                             long id = NoteDatabase.getInstance(MainActivity.this).synthesisDao().insert(newSynthesis);
+
                             runOnUiThread(() -> {
                                 Intent intent = new Intent(MainActivity.this, SynthesisDetailActivity.class);
                                 intent.putExtra("SYNTHESIS_ID", (int) id);
