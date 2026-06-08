@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 public class SessionManager {
     private static final String PREF_NAME = "VostItSession";
     private static final String KEY_USERNAME = "username";
+    private static final String KEY_DARK_MODE = "dark_mode";
     private SharedPreferences pref;
     private SharedPreferences.Editor editor;
 
@@ -21,6 +22,15 @@ public class SessionManager {
 
     public String getUsername() {
         return pref.getString(KEY_USERNAME, null);
+    }
+
+    public void setDarkMode(boolean isDark) {
+        editor.putBoolean(KEY_DARK_MODE, isDark);
+        editor.apply();
+    }
+
+    public boolean isDarkMode() {
+        return pref.getBoolean(KEY_DARK_MODE, false);
     }
 
     public boolean isLoggedIn() {

@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,16 +33,6 @@ public class SubjectSelectionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_subject_selection);
 
-        findViewById(R.id.btn_logout).setOnClickListener(v -> {
-            new SessionManager(this).logout();
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-        });
-
-        findViewById(R.id.btn_view_syntheses).setOnClickListener(v -> {
-            startActivity(new Intent(this, SynthesisListActivity.class));
-        });
-
         RecyclerView recyclerView = findViewById(R.id.recycler_subjects);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(new SpecialtyAdapter(specialties, specialty -> {
@@ -48,6 +40,40 @@ public class SubjectSelectionActivity extends AppCompatActivity {
             intent.putExtra("SELECTED_SPECIALTY", specialty);
             startActivity(intent);
         }));
+
+        setupBottomNavigation();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        if (bottomNav != null) {
+            bottomNav.setSelectedItemId(R.id.nav_subjects);
+        }
+    }
+
+    private void setupBottomNavigation() {
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_syntheses) {
+                Intent intent = new Intent(this, SynthesisListActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                return true;
+            } else if (id == R.id.nav_profile) {
+                Intent intent = new Intent(this, ProfileActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                return true;
+            } else if (id == R.id.nav_subjects) {
+                return true;
+            }
+            return false;
+        });
     }
 
     private static class SpecialtyAdapter extends RecyclerView.Adapter<SpecialtyAdapter.ViewHolder> {
