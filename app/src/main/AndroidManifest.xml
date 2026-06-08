@@ -36,6 +36,14 @@
             android:exported="false" />
 
         <activity
+            android:name=".YearSelectionActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SubjectListActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="false" />
 

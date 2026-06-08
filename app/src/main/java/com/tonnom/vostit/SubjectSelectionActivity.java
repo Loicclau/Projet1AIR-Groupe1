@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -17,14 +18,12 @@ import java.util.List;
 
 public class SubjectSelectionActivity extends AppCompatActivity {
 
-    private final List<String> subjects = Arrays.asList(
-            "Java",
-            "UML",
-            "Statistiques et systèmes stochastiques",
-            "Sécurité des programmes",
-            "SGBD",
-            "BI",
-            "DDRS"
+    private final List<String> specialties = Arrays.asList(
+            "Automatique et Systèmes Embarqués",
+            "Informatique et Réseaux",
+            "Textile",
+            "Mécanique",
+            "Cycle post-bac intégré"
     );
 
     @Override
@@ -44,23 +43,23 @@ public class SubjectSelectionActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = findViewById(R.id.recycler_subjects);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(new SubjectAdapter(subjects, subject -> {
-            Intent intent = new Intent(SubjectSelectionActivity.this, MainActivity.class);
-            intent.putExtra("SELECTED_SUBJECT", subject);
+        recyclerView.setAdapter(new SpecialtyAdapter(specialties, specialty -> {
+            Intent intent = new Intent(SubjectSelectionActivity.this, YearSelectionActivity.class);
+            intent.putExtra("SELECTED_SPECIALTY", specialty);
             startActivity(intent);
         }));
     }
 
-    private static class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.ViewHolder> {
-        private final List<String> subjects;
-        private final OnSubjectClickListener listener;
+    private static class SpecialtyAdapter extends RecyclerView.Adapter<SpecialtyAdapter.ViewHolder> {
+        private final List<String> specialties;
+        private final OnSpecialtyClickListener listener;
 
-        interface OnSubjectClickListener {
-            void onSubjectClick(String subject);
+        interface OnSpecialtyClickListener {
+            void onSpecialtyClick(String specialty);
         }
 
-        SubjectAdapter(List<String> subjects, OnSubjectClickListener listener) {
-            this.subjects = subjects;
+        SpecialtyAdapter(List<String> specialties, OnSpecialtyClickListener listener) {
+            this.specialties = specialties;
             this.listener = listener;
         }
 
@@ -73,21 +72,47 @@ public class SubjectSelectionActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            String subject = subjects.get(position);
-            holder.tvName.setText(subject);
-            holder.itemView.setOnClickListener(v -> listener.onSubjectClick(subject));
+            String specialty = specialties.get(position);
+            holder.tvName.setText(specialty);
+            
+            // Set specialty icon
+            int iconRes;
+            switch (specialty) {
+                case "Informatique et Réseaux":
+                    iconRes = R.drawable.ic_computer;
+                    break;
+                case "Mécanique":
+                    iconRes = R.drawable.ic_gear;
+                    break;
+                case "Automatique et Systèmes Embarqués":
+                    iconRes = R.drawable.ic_robot;
+                    break;
+                case "Textile":
+                    iconRes = R.drawable.ic_textile;
+                    break;
+                case "Cycle post-bac intégré":
+                    iconRes = R.drawable.ic_lab;
+                    break;
+                default:
+                    iconRes = android.R.drawable.ic_menu_agenda;
+            }
+            holder.ivIcon.setImageResource(iconRes);
+            
+            holder.itemView.setOnClickListener(v -> listener.onSpecialtyClick(specialty));
         }
 
         @Override
         public int getItemCount() {
-            return subjects.size();
+            return specialties.size();
         }
 
         static class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvName;
+            ImageView ivIcon;
             ViewHolder(View view) {
                 super(view);
                 tvName = view.findViewById(R.id.tv_subject_name);
+                ivIcon = view.findViewById(R.id.iv_subject_icon);
             }
         }
     }

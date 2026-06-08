@@ -25,7 +25,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:fontFamily="sans-serif-black"
-                android:text="Mes Cours"
+                android:text="Spécialités"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="32sp" />
 
@@ -70,7 +70,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="sans-serif-black"
                         android:letterSpacing="0.1"
-                        android:text="Assistant IA"
+                        android:text="Assistant Vostit"
                         android:textAllCaps="true"
                         android:textColor="?attr/colorOnSecondaryContainer"
                         android:textSize="12sp" />
@@ -93,7 +93,7 @@
                         android:text="Voir mes synthèses"
                         android:textColor="?attr/colorOnSecondary"
                         app:backgroundTint="?attr/colorSecondary"
-                        app:icon="@android:drawable/ic_menu_agenda"
+                        app:icon="@drawable/ic_synthesis"
                         app:iconTint="?attr/colorOnSecondary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -105,7 +105,7 @@
                 android:layout_marginBottom="16dp"
                 android:fontFamily="sans-serif-black"
                 android:letterSpacing="0.1"
-                android:text="Sélectionnez une matière"
+                android:text="Sélectionnez votre spécialité"
                 android:textAllCaps="true"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="12sp" />
