@@ -95,7 +95,6 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
     implementation(libs.okhttp)
-    implementation(libs.mlkit.text.recognition)
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))

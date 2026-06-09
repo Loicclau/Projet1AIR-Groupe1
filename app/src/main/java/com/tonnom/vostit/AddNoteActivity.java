@@ -34,11 +34,7 @@ import android.view.MenuItem;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.text.Text;
-import com.google.mlkit.vision.text.TextRecognition;
-import com.google.mlkit.vision.text.TextRecognizer;
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import com.google.ai.client.generativeai.type.GenerateContentResponse;
 
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -196,7 +192,11 @@ public class AddNoteActivity extends AppCompatActivity {
     }
 
     private void processImageForOCR(String path) {
-        showLoading("Vostit analyse vos notes...");
+        processImageForOCRWithRetry(path, 0);
+    }
+
+    private void processImageForOCRWithRetry(String path, int attempt) {
+        showLoading(attempt > 0 ? "Réessaie l'analyse (" + attempt + "/3)..." : "Vostit analyse vos notes...");
         executor.execute(() -> {
             Bitmap bitmap = loadResizedBitmap(path, 1024);
             if (bitmap == null) {
@@ -207,24 +207,41 @@ public class AddNoteActivity extends AppCompatActivity {
                 return;
             }
 
-            InputImage image = InputImage.fromBitmap(bitmap, 0);
-            TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+            ListenableFuture<GenerateContentResponse> future = geminiHelper.extractAndCleanText(bitmap);
+            Futures.addCallback(future, new FutureCallback<GenerateContentResponse>() {
+                @Override
+                public void onSuccess(GenerateContentResponse result) {
+                    runOnUiThread(() -> {
+                        hideLoading();
+                        String extractedText = result.getText();
+                        if (extractedText != null && !extractedText.contains("[ERREUR: TEXTE ILLISIBLE]")) {
+                            showOCRPreviewDialog(extractedText, path);
+                        } else {
+                            Toast.makeText(AddNoteActivity.this, "Impossible de lire le texte. Essayez une photo plus nette.", Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
 
-            recognizer.process(image)
-                .addOnSuccessListener(visionText -> {
-                    hideLoading();
-                    String extractedText = visionText.getText();
-                    if (extractedText != null && !extractedText.trim().isEmpty()) {
-                        showOCRPreviewDialog(extractedText, path);
+                @Override
+                public void onFailure(@NonNull Throwable t) {
+                    Log.e("AddNoteActivity", "Erreur OCR tentative " + attempt, t);
+                    
+                    if (attempt < 3 && (t.getMessage() != null && (t.getMessage().contains("503") || t.getMessage().contains("UNAVAILABLE") || t.getMessage().contains("Unexpected response")))) {
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                            processImageForOCRWithRetry(path, attempt + 1);
+                        }, 2000);
                     } else {
-                        Toast.makeText(AddNoteActivity.this, "Aucun texte détecté dans cette image.", Toast.LENGTH_LONG).show();
+                        runOnUiThread(() -> {
+                            hideLoading();
+                            String errorMsg = "Erreur d'analyse. Vérifiez votre connexion.";
+                            if (t.getMessage() != null && t.getMessage().contains("404")) {
+                                errorMsg = "Erreur 404 : Le modèle Gemini est obsolète ou introuvable. Vérifiez le nom du modèle dans GeminiHelper ou votre clé API.";
+                            }
+                            Toast.makeText(AddNoteActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                        });
                     }
-                })
-                .addOnFailureListener(e -> {
-                    hideLoading();
-                    Log.e("AddNoteActivity", "Erreur ML Kit OCR", e);
-                    Toast.makeText(AddNoteActivity.this, "Erreur lors de l'analyse : " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+                }
+            }, executor);
         });
     }
 

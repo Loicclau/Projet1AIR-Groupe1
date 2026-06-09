@@ -12,6 +12,7 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.appcompat.app.AppCompatActivity;
@@ -381,20 +382,28 @@ public class MainActivity extends AppCompatActivity {
                 continue;
             }
 
-            com.google.mlkit.vision.common.InputImage image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0);
-            com.google.mlkit.vision.text.TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
-                .process(image)
-                .addOnSuccessListener(visionText -> {
-                    String extracted = visionText.getText();
+            ListenableFuture<GenerateContentResponse> future = geminiHelper.extractAndCleanText(bitmap);
+            Futures.addCallback(future, new FutureCallback<GenerateContentResponse>() {
+                @Override
+                public void onSuccess(GenerateContentResponse result) {
+                    String extracted = result.getText();
                     if (extracted != null && !extracted.trim().isEmpty()) {
                         content.append("\n[Contenu Image] : ").append(extracted).append("\n");
                     }
                     if (processedCount.incrementAndGet() == totalImages) performSynthesis(content.toString());
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("MainActivity", "Erreur OCR image", e);
+                }
+
+                @Override
+                public void onFailure(@NonNull Throwable t) {
+                    Log.e("MainActivity", "Erreur OCR image", t);
+                    runOnUiThread(() -> {
+                        if (t.getMessage() != null && t.getMessage().contains("404")) {
+                            Toast.makeText(MainActivity.this, "Erreur 404 Gemini : Modèle non trouvé. Vérifiez votre clé API.", Toast.LENGTH_LONG).show();
+                        }
+                    });
                     if (processedCount.incrementAndGet() == totalImages) performSynthesis(content.toString());
-                });
+                }
+            }, executor);
         }
     }
 
@@ -423,7 +432,7 @@ public class MainActivity extends AppCompatActivity {
     private void performSynthesis(String text) {
         if (geminiHelper == null) return;
         
-        runOnUiThread(() -> Toast.makeText(this, "Génération de la synthèse...", Toast.LENGTH_SHORT).show());
+        runOnUiThread(() -> Toast.makeText(this, "Génération de la synthèse (via Groq)...", Toast.LENGTH_SHORT).show());
         
         ListenableFuture<String> future = geminiHelper.synthesizeCourse(text);
         Futures.addCallback(future, new FutureCallback<String>() {
@@ -469,13 +478,13 @@ public class MainActivity extends AppCompatActivity {
                 
                 // On ne relance PAS en boucle infinie immédiatement si c'est une erreur critique
                 String msg = t.getMessage() != null ? t.getMessage() : "";
-                if (msg.contains("401") || msg.contains("403") || msg.contains("API key")) {
+                if (msg.contains("401") || msg.contains("403") || msg.contains("API key") || msg.contains("404")) {
                     runOnUiThread(() -> {
                         loadingOverlay.setVisibility(View.GONE);
                         btnSynthesize.setEnabled(true);
                         new AlertDialog.Builder(MainActivity.this, R.style.ModernDialog)
                             .setTitle("Problème de configuration")
-                            .setMessage("La clé API Groq semble incorrecte ou manquante dans local.properties.")
+                            .setMessage("La clé API Groq semble incorrecte ou le modèle est introuvable. Vérifiez local.properties.")
                             .setPositiveButton("Vérifier", null)
                             .show();
                     });
