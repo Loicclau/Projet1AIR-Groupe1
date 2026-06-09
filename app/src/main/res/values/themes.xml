@@ -48,7 +48,5 @@
     <style name="ModernButton" parent="PremiumButton" />
     <style name="ModernTextInputLayout" parent="PremiumInput" />
     <style name="ModernToolbar" parent="Widget.Material3.Toolbar" />
-    <style name="ModernDialog" parent="Theme.Material3.Light.Dialog">
-        <item name="android:windowBackground">@android:color/transparent</item>
-    </style>
+    <style name="ModernDialog" parent="Theme.Material3.Light.Dialog" />
 </resources>

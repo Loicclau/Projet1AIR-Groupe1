@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -66,8 +67,8 @@ public class MainActivity extends AppCompatActivity {
 
             sessionManager = new SessionManager(this);
             cloudSyncHelper = new CloudSyncHelper(this);
-            // Utilisation de la clé sécurisée depuis BuildConfig
-            geminiHelper = new GeminiHelper(BuildConfig.GEMINI_API_KEY);
+            // Utilisation hybride : Gemini pour OCR, Groq pour Synthèse
+            geminiHelper = new GeminiHelper(BuildConfig.GEMINI_API_KEY, BuildConfig.GROQ_API_KEY);
 
             selectedSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
             selectedSpecialty = getIntent().getStringExtra("SELECTED_SPECIALTY");
@@ -281,8 +282,22 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        // Vérification du quota
+        if (sessionManager.getDailySynthesisCount() >= 10) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Quota atteint")
+                    .setMessage("Vous avez atteint votre limite de 10 synthèses par jour. Revenez demain !")
+                    .setPositiveButton("D'accord", null)
+                    .show();
+            return;
+        }
+
         runOnUiThread(() -> {
             loadingOverlay.setVisibility(View.VISIBLE);
+            // Optionnel : mettre à jour le texte du chargement si vous avez un TextView
+            TextView tvLoading = loadingOverlay.findViewById(R.id.tv_loading_message);
+            if (tvLoading != null) tvLoading.setText("Vostit génère votre synthèse...");
+
             btnSynthesize.setEnabled(false);
         });
 
@@ -366,26 +381,20 @@ public class MainActivity extends AppCompatActivity {
                 continue;
             }
 
-            ListenableFuture<GenerateContentResponse> future = geminiHelper.extractAndCleanText(bitmap);
-            Futures.addCallback(future, new FutureCallback<GenerateContentResponse>() {
-                @Override
-                public void onSuccess(GenerateContentResponse result) {
-                    try {
-                        String extracted = result.getText();
-                        if (extracted != null) {
-                            content.append("\n[Contenu Image] : ").append(extracted).append("\n");
-                        }
-                    } catch (Exception e) {
-                        content.append("\n[Erreur extraction image]\n");
+            com.google.mlkit.vision.common.InputImage image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0);
+            com.google.mlkit.vision.text.TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
+                .process(image)
+                .addOnSuccessListener(visionText -> {
+                    String extracted = visionText.getText();
+                    if (extracted != null && !extracted.trim().isEmpty()) {
+                        content.append("\n[Contenu Image] : ").append(extracted).append("\n");
                     }
                     if (processedCount.incrementAndGet() == totalImages) performSynthesis(content.toString());
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("MainActivity", "Erreur OCR image", e);
                     if (processedCount.incrementAndGet() == totalImages) performSynthesis(content.toString());
-                }
-            }, executor);
+                });
         }
     }
 
@@ -416,68 +425,70 @@ public class MainActivity extends AppCompatActivity {
         
         runOnUiThread(() -> Toast.makeText(this, "Génération de la synthèse...", Toast.LENGTH_SHORT).show());
         
-        ListenableFuture<GenerateContentResponse> future = geminiHelper.synthesizeCourse(text);
-        Futures.addCallback(future, new FutureCallback<GenerateContentResponse>() {
+        ListenableFuture<String> future = geminiHelper.synthesizeCourse(text);
+        Futures.addCallback(future, new FutureCallback<String>() {
             @Override
-            public void onSuccess(GenerateContentResponse result) {
+            public void onSuccess(String finalTxt) {
                 runOnUiThread(() -> {
                     loadingOverlay.setVisibility(View.GONE);
                     btnSynthesize.setEnabled(true);
                 });
-                try {
-                    String finalTxt = result.getText();
-                    if (finalTxt == null || finalTxt.isEmpty()) {
-                        runOnUiThread(() -> Toast.makeText(MainActivity.this, "Le contenu a été bloqué pour des raisons de sécurité.", Toast.LENGTH_LONG).show());
-                    } else {
-                        // Sauvegarder dans la DB avant d'afficher
-                        executor.execute(() -> {
-                            Synthesis newSynthesis = new Synthesis(
-                                    selectedSubject, finalTxt, System.currentTimeMillis()
-                            );
-                            newSynthesis.setSpecialty(selectedSpecialty);
-                            newSynthesis.setYear(selectedYear);
-                            
-                            // 1. Partager sur le Cloud pour les autres
-                            cloudSyncHelper.uploadSynthesis(newSynthesis);
-                            
-                            // 2. Sauvegarder localement
-                            NoteDatabase.getInstance(MainActivity.this).synthesisDao().deleteBySubject(selectedSubject);
-                            long id = NoteDatabase.getInstance(MainActivity.this).synthesisDao().insert(newSynthesis);
+                if (finalTxt == null || finalTxt.isEmpty()) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Erreur de génération.", Toast.LENGTH_LONG).show());
+                } else {
+                    // Sauvegarder dans la DB avant d'afficher
+                    executor.execute(() -> {
+                        Synthesis newSynthesis = new Synthesis(
+                                selectedSubject, finalTxt, System.currentTimeMillis()
+                        );
+                        newSynthesis.setSpecialty(selectedSpecialty);
+                        newSynthesis.setYear(selectedYear);
+                        
+                        // 1. Partager sur le Cloud pour les autres
+                        cloudSyncHelper.uploadSynthesis(newSynthesis);
+                        
+                        // 2. Sauvegarder localement
+                        NoteDatabase.getInstance(MainActivity.this).synthesisDao().deleteBySubject(selectedSubject);
+                        long id = NoteDatabase.getInstance(MainActivity.this).synthesisDao().insert(newSynthesis);
 
-                            runOnUiThread(() -> {
-                                Intent intent = new Intent(MainActivity.this, SynthesisDetailActivity.class);
-                                intent.putExtra("SYNTHESIS_ID", (int) id);
-                                startActivity(intent);
-                            });
+                        // 3. Incrémenter le quota
+                        sessionManager.incrementDailySynthesisCount();
+
+                        runOnUiThread(() -> {
+                            Intent intent = new Intent(MainActivity.this, SynthesisDetailActivity.class);
+                            intent.putExtra("SYNTHESIS_ID", (int) id);
+                            startActivity(intent);
                         });
-                    }
-                } catch (Exception e) {
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Erreur lors de la génération de la réponse.", Toast.LENGTH_LONG).show());
+                    });
                 }
             }
 
             @Override
             public void onFailure(Throwable t) {
-                runOnUiThread(() -> {
-                    loadingOverlay.setVisibility(View.GONE);
-                    btnSynthesize.setEnabled(true);
-                });
-                t.printStackTrace();
-                runOnUiThread(() -> {
-                    String simpleName = t.getClass().getSimpleName();
-                    String msg = t.getMessage();
-                    String finalError = simpleName + " : " + (msg != null ? msg : "Pas de message");
-
-                    if (finalError.contains("API_KEY_INVALID") || finalError.contains("403")) {
-                        finalError = "CLÉ API NON RECONNUE.\n\nAssurez-vous que votre clé commence par 'AIzaSy'.";
-                    }
-
-                    new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("Diagnostic Gemini")
-                            .setMessage(finalError)
-                            .setPositiveButton("Compris", null)
+                Log.e("MainActivity", "Erreur Groq : " + t.getMessage());
+                
+                // On ne relance PAS en boucle infinie immédiatement si c'est une erreur critique
+                String msg = t.getMessage() != null ? t.getMessage() : "";
+                if (msg.contains("401") || msg.contains("403") || msg.contains("API key")) {
+                    runOnUiThread(() -> {
+                        loadingOverlay.setVisibility(View.GONE);
+                        btnSynthesize.setEnabled(true);
+                        new AlertDialog.Builder(MainActivity.this, R.style.ModernDialog)
+                            .setTitle("Problème de configuration")
+                            .setMessage("La clé API Groq semble incorrecte ou manquante dans local.properties.")
+                            .setPositiveButton("Vérifier", null)
                             .show();
-                });
+                    });
+                    return;
+                }
+
+                // Sinon (surcharge), on attend 5 secondes au lieu de 3 pour être plus "calme"
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                    if (!isFinishing()) {
+                        Log.d("MainActivity", "Tentative de reconnexion au service...");
+                        startCourseSynthesis();
+                    }
+                }, 5000);
             }
         }, executor);
     }

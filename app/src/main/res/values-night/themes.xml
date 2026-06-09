@@ -39,7 +39,5 @@
     <style name="ModernCardView" parent="PremiumCard" />
     <style name="ModernButton" parent="PremiumButton" />
     <style name="ModernTextInputLayout" parent="PremiumInput" />
-    <style name="ModernDialog" parent="Theme.Material3.Dark.Dialog">
-        <item name="android:windowBackground">@android:color/transparent</item>
-    </style>
+    <style name="ModernDialog" parent="Theme.Material3.Dark.Dialog" />
 </resources>

@@ -74,6 +74,21 @@
             android:textSize="12sp"
             tools:text="Généré le 12 Octobre" />
 
+        <TextView
+            android:id="@+id/tv_badge_favorite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/grad_assistant"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:text="synthèse de votre spécialité"
+            android:textColor="@android:color/white"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <com.google.android.material.divider.MaterialDivider
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

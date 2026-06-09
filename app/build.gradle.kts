@@ -33,6 +33,9 @@ android {
         val apiKey: String = localProperties.getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
 
+        val groqKey: String = localProperties.getProperty("GROQ_API_KEY") ?: ""
+        buildConfigField("String", "GROQ_API_KEY", "\"$groqKey\"")
+
         // Firebase Security
         val fbKey: String = localProperties.getProperty("FIREBASE_API_KEY") ?: "MISSING_KEY"
         val fbAppId: String = localProperties.getProperty("FIREBASE_APP_ID") ?: "MISSING_ID"
@@ -91,6 +94,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
+    implementation(libs.okhttp)
+    implementation(libs.mlkit.text.recognition)
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))

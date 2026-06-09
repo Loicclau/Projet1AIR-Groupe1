@@ -55,27 +55,159 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center"
                     android:orientation="vertical">
 
+                    <!-- Header: Bonjour -->
                     <TextView
                         android:id="@+id/tv_greeting"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:fontFamily="sans-serif-black"
                         android:text="Bonjour"
                         android:textColor="?attr/colorOnSurface"
-                        android:textSize="24sp" />
+                        android:textSize="24sp"
+                        android:layout_marginBottom="24dp"/>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_logout_profile"
-                        style="@style/PremiumButton"
+                    <!-- Nouveau bloc Préférences déplacé ici -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="32dp"
+                        android:orientation="vertical"
+                        android:layout_marginBottom="24dp">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Ta spécialité"
+                            android:layout_marginBottom="12dp">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/auto_specialty"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="none" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Ton année en cours">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/auto_year"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="none" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                    <!-- Stats Section inside same card -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <!-- Nombre de notes -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="20dp">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@android:drawable/ic_menu_edit"
+                                app:tint="?attr/colorPrimary" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="12dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Notes créées"
+                                    android:textSize="13sp"
+                                    android:alpha="0.7"/>
+
+                                <TextView
+                                    android:id="@+id/tv_stats_notes_count"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="sans-serif-black"
+                                    android:text="0"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textSize="16sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Limite de synthèses -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="24dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Synthèses quotidiennes"
+                                    android:textSize="13sp"
+                                    android:alpha="0.7"/>
+
+                                <TextView
+                                    android:id="@+id/tv_stats_synthesis_quota"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="sans-serif-black"
+                                    android:text="0/10"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:textSize="13sp" />
+                            </LinearLayout>
+
+                            <com.google.android.material.progressindicator.LinearProgressIndicator
+                                android:id="@+id/progress_synthesis_quota"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                app:trackThickness="6dp"
+                                app:trackCornerRadius="3dp"
+                                android:progress="0"
+                                android:max="10"
+                                app:indicatorColor="?attr/colorPrimary"
+                                app:trackColor="?attr/colorSurfaceVariant"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Logout Button (made smaller with padding/width) -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_logout_profile"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:text="Se déconnecter"
-                        app:backgroundTint="@color/error"
-                        android:textColor="@color/white" />
+                        app:backgroundTint="#1AFF4444"
+                        android:textColor="@color/error"
+                        android:textSize="12sp"
+                        app:paddingStart="24dp"
+                        app:paddingEnd="24dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"/>
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

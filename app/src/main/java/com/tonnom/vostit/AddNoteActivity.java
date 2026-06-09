@@ -34,8 +34,14 @@ import android.view.MenuItem;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.ai.client.generativeai.type.GenerateContentResponse;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+
 import androidx.appcompat.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import android.widget.TextView;
 
 import java.io.File;
@@ -97,7 +103,7 @@ public class AddNoteActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
         cloudSyncHelper = new CloudSyncHelper(this);
-        geminiHelper = new GeminiHelper(BuildConfig.GEMINI_API_KEY);
+        geminiHelper = new GeminiHelper(BuildConfig.GEMINI_API_KEY, BuildConfig.GROQ_API_KEY);
         
         loadingOverlay = findViewById(R.id.loading_overlay);
         tvLoadingMessage = findViewById(R.id.tv_loading_message);
@@ -201,31 +207,24 @@ public class AddNoteActivity extends AppCompatActivity {
                 return;
             }
 
-            ListenableFuture<GenerateContentResponse> future = geminiHelper.extractAndCleanText(bitmap);
-            Futures.addCallback(future, new FutureCallback<GenerateContentResponse>() {
-                @Override
-                public void onSuccess(GenerateContentResponse result) {
-                    runOnUiThread(() -> {
-                        hideLoading();
-                        String extractedText = result.getText();
-                        if (extractedText != null && !extractedText.contains("[ERREUR: TEXTE ILLISIBLE]")) {
-                            showOCRPreviewDialog(extractedText, path);
-                        } else {
-                            Toast.makeText(AddNoteActivity.this, "Impossible de lire le texte pour le moment.", Toast.LENGTH_LONG).show();
-                        }
-                    });
-                }
+            InputImage image = InputImage.fromBitmap(bitmap, 0);
+            TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
-                @Override
-                public void onFailure(Throwable t) {
-                    Log.e("AddNoteActivity", "Erreur OCR complète", t);
-                    runOnUiThread(() -> {
-                        hideLoading();
-                        String errorMsg = t.getMessage() != null ? t.getMessage() : "Erreur inconnue";
-                        Toast.makeText(AddNoteActivity.this, "Erreur OCR : " + errorMsg, Toast.LENGTH_LONG).show();
-                    });
-                }
-            }, executor);
+            recognizer.process(image)
+                .addOnSuccessListener(visionText -> {
+                    hideLoading();
+                    String extractedText = visionText.getText();
+                    if (extractedText != null && !extractedText.trim().isEmpty()) {
+                        showOCRPreviewDialog(extractedText, path);
+                    } else {
+                        Toast.makeText(AddNoteActivity.this, "Aucun texte détecté dans cette image.", Toast.LENGTH_LONG).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    hideLoading();
+                    Log.e("AddNoteActivity", "Erreur ML Kit OCR", e);
+                    Toast.makeText(AddNoteActivity.this, "Erreur lors de l'analyse : " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
         });
     }
 
@@ -234,7 +233,7 @@ public class AddNoteActivity extends AppCompatActivity {
         EditText etResult = dialogView.findViewById(R.id.et_ocr_result);
         etResult.setText(text);
 
-        AlertDialog dialog = new AlertDialog.Builder(this, R.style.ModernDialog)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setView(dialogView)
                 .setCancelable(false)
                 .create();

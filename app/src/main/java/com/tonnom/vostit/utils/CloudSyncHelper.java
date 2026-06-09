@@ -206,6 +206,37 @@ public class CloudSyncHelper {
         void onFetch(com.tonnom.vostit.model.Synthesis synthesis);
     }
 
+    public interface OnAllSynthesesFetchListener {
+        void onFetch(List<com.tonnom.vostit.model.Synthesis> syntheses);
+    }
+
+    public void fetchAllSyntheses(OnAllSynthesesFetchListener listener) {
+        db.collection("syntheses")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<com.tonnom.vostit.model.Synthesis> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        try {
+                            Synthesis s = new Synthesis(
+                                    doc.getString("subject"),
+                                    doc.getString("content"),
+                                    doc.getLong("timestamp") != null ? doc.getLong("timestamp") : 0
+                            );
+                            s.setSpecialty(doc.getString("specialty"));
+                            s.setYear(doc.getString("year"));
+                            list.add(s);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Erreur lecture doc synthèse", e);
+                        }
+                    }
+                    listener.onFetch(list);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Erreur fetch all syntheses", e);
+                    listener.onFetch(new ArrayList<>());
+                });
+    }
+
     public void fetchLatestSynthesis(String subject, OnSynthesisFetchListener listener) {
         if (subject == null) return;
         

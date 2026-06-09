@@ -5,6 +5,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.tonnom.vostit.database.NoteDatabase;
 import com.tonnom.vostit.model.Synthesis;
+import com.tonnom.vostit.utils.CloudSyncHelper;
 import com.tonnom.vostit.utils.PdfExportHelper;
 
 import java.text.SimpleDateFormat;
@@ -42,11 +45,7 @@ public class SynthesisListActivity extends AppCompatActivity {
 
         filterSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
 
-        Toolbar toolbar = findViewById(R.id.toolbar_synthesis);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayShowTitleEnabled(false);
-        }
+        findViewById(R.id.btn_refresh).setOnClickListener(v -> syncWithCloud());
 
         RecyclerView recyclerView = findViewById(R.id.recycler_syntheses);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -55,6 +54,8 @@ public class SynthesisListActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         emptyState = findViewById(R.id.layout_empty_syntheses);
+
+        findViewById(R.id.btn_refresh).setOnClickListener(v -> syncWithCloud());
 
         loadSyntheses();
         setupBottomNavigation();
@@ -109,8 +110,25 @@ public class SynthesisListActivity extends AppCompatActivity {
             } else {
                 list = NoteDatabase.getInstance(this).synthesisDao().getAllSyntheses();
             }
+
+            // Trier par favoris
+            SessionManager sm = new SessionManager(this);
+            String favSpec = sm.getFavoriteSpecialty();
+            String favYear = sm.getFavoriteYear();
+
+            list.sort((s1, s2) -> {
+                boolean s1Fav = (favSpec != null && favSpec.equals(s1.getSpecialty())) && 
+                                (favYear != null && s1.getYear() != null && s1.getYear().contains(favYear));
+                boolean s2Fav = (favSpec != null && favSpec.equals(s2.getSpecialty())) && 
+                                (favYear != null && s2.getYear() != null && s2.getYear().contains(favYear));
+
+                if (s1Fav && !s2Fav) return -1;
+                if (!s1Fav && s2Fav) return 1;
+                return Long.compare(s2.getTimestamp(), s1.getTimestamp());
+            });
+
             runOnUiThread(() -> {
-                adapter.setData(list);
+                adapter.setData(list, favSpec, favYear);
                 emptyState.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
             });
         });
@@ -122,10 +140,30 @@ public class SynthesisListActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    private void syncWithCloud() {
+        Toast.makeText(this, "Synchronisation...", Toast.LENGTH_SHORT).show();
+        CloudSyncHelper cloudSyncHelper = new CloudSyncHelper(this);
+        cloudSyncHelper.fetchAllSyntheses(cloudList -> {
+            executor.execute(() -> {
+                for (Synthesis s : cloudList) {
+                    // Sauvegarder ou mettre à jour localement
+                    NoteDatabase.getInstance(this).synthesisDao().deleteBySubject(s.getSubject());
+                    NoteDatabase.getInstance(this).synthesisDao().insert(s);
+                }
+                runOnUiThread(() -> {
+                    loadSyntheses();
+                    Toast.makeText(this, "Synthèses à jour", Toast.LENGTH_SHORT).show();
+                });
+            });
+        });
+    }
+
     private static class SynthesisAdapter extends RecyclerView.Adapter<SynthesisAdapter.ViewHolder> {
         private final List<Synthesis> syntheses;
         private final OnItemClickListener listener;
         private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+        private String favoriteSpecialty;
+        private String favoriteYear;
 
         interface OnItemClickListener {
             void onItemClick(Synthesis synthesis);
@@ -136,7 +174,9 @@ public class SynthesisListActivity extends AppCompatActivity {
             this.listener = listener;
         }
 
-        void setData(List<Synthesis> newList) {
+        void setData(List<Synthesis> newList, String favSpec, String favYear) {
+            this.favoriteSpecialty = favSpec;
+            this.favoriteYear = favYear;
             this.syntheses.clear();
             this.syntheses.addAll(newList);
             notifyDataSetChanged();
@@ -163,6 +203,11 @@ public class SynthesisListActivity extends AppCompatActivity {
                 holder.tvInfo.setVisibility(View.GONE);
             }
 
+            // Afficher le badge si c'est la spécialité favorite
+            boolean isFavorite = (favoriteSpecialty != null && favoriteSpecialty.equals(s.getSpecialty())) && 
+                                (favoriteYear != null && s.getYear() != null && s.getYear().contains(favoriteYear));
+            holder.tvBadgeFavorite.setVisibility(isFavorite ? View.VISIBLE : View.GONE);
+
             holder.itemView.setOnClickListener(v -> listener.onItemClick(s));
         }
 
@@ -172,13 +217,14 @@ public class SynthesisListActivity extends AppCompatActivity {
         }
 
         static class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvSubject, tvDate, tvPreview, tvInfo;
+            TextView tvSubject, tvDate, tvPreview, tvInfo, tvBadgeFavorite;
             ViewHolder(View view) {
                 super(view);
                 tvSubject = view.findViewById(R.id.tv_synthesis_subject);
                 tvDate = view.findViewById(R.id.tv_synthesis_date);
                 tvPreview = view.findViewById(R.id.tv_synthesis_preview);
                 tvInfo = view.findViewById(R.id.tv_synthesis_info);
+                tvBadgeFavorite = view.findViewById(R.id.tv_badge_favorite);
             }
         }
     }
