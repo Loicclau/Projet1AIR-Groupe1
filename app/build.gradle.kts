@@ -29,9 +29,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Récupération de la clé depuis local.properties pour éviter de la commit
-        val apiKey: String = localProperties.getProperty("GEMINI_API_KEY") ?: ""
-        buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
+        // Récupération des clés depuis local.properties
+        val keyList = mutableListOf<String>()
+        for (i in 1..5) {
+            keyList.add(localProperties.getProperty("GEMINI_API_KEY$i") ?: "")
+        }
+        val joinedKeys = keyList.joinToString(",")
+        buildConfigField("String", "GEMINI_API_KEYS", "\"$joinedKeys\"")
 
         val groqKey: String = localProperties.getProperty("GROQ_API_KEY") ?: ""
         buildConfigField("String", "GROQ_API_KEY", "\"$groqKey\"")
@@ -105,6 +109,10 @@ dependencies {
     // Room (SQLite)
     implementation("androidx.room:room-runtime:2.6.1")
     annotationProcessor("androidx.room:room-compiler:2.6.1")
+
+    // ML Kit Text Recognition (On-device OCR)
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
+
     // Google AI SDK for Android (Optimized for Android)
     implementation(libs.generativeai)
     // Guava for ListenableFuture

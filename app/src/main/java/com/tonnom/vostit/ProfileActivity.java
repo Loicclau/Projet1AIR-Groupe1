@@ -1,11 +1,14 @@
 package com.tonnom.vostit;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.Filter;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 
@@ -58,19 +61,21 @@ public class ProfileActivity extends AppCompatActivity {
         AutoCompleteTextView autoSpecialty = findViewById(R.id.auto_specialty);
         AutoCompleteTextView autoYear = findViewById(R.id.auto_year);
 
-        ArrayAdapter<String> adapterSpec = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, specialties);
+        // Utilisation d'un adaptateur personnalisé qui ignore le filtrage
+        NoFilterAdapter adapterSpec = new NoFilterAdapter(this, android.R.layout.simple_dropdown_item_1line, specialties);
         autoSpecialty.setAdapter(adapterSpec);
         
         String currentSpec = sessionManager.getFavoriteSpecialty();
         if (currentSpec != null) {
             autoSpecialty.setText(currentSpec, false);
         }
-        
+
         autoSpecialty.setOnItemClickListener((parent, view, position, id) -> {
-            sessionManager.setFavoriteSpecialty(specialties[position]);
+            sessionManager.setFavoriteSpecialty(adapterSpec.getItem(position));
         });
 
-        ArrayAdapter<String> adapterYear = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, years);
+        // Même chose pour l'année
+        NoFilterAdapter adapterYear = new NoFilterAdapter(this, android.R.layout.simple_dropdown_item_1line, years);
         autoYear.setAdapter(adapterYear);
         
         String currentYear = sessionManager.getFavoriteYear();
@@ -79,7 +84,7 @@ public class ProfileActivity extends AppCompatActivity {
         }
         
         autoYear.setOnItemClickListener((parent, view, position, id) -> {
-            sessionManager.setFavoriteYear(years[position]);
+            sessionManager.setFavoriteYear(adapterYear.getItem(position));
         });
     }
 
@@ -114,6 +119,10 @@ public class ProfileActivity extends AppCompatActivity {
 
         toggleGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
+                // Désactiver le focus pour éviter l'ouverture automatique au redémarrage de l'activité
+                findViewById(R.id.auto_specialty).clearFocus();
+                findViewById(R.id.auto_year).clearFocus();
+
                 if (checkedId == R.id.btn_dark_mode) {
                     sessionManager.setDarkMode(true);
                     AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
@@ -157,5 +166,37 @@ public class ProfileActivity extends AppCompatActivity {
             }
             return id == R.id.nav_profile;
         });
+    }
+
+    /**
+     * Classe interne pour désactiver le filtrage de l'AutoCompleteTextView.
+     * Cela permet de toujours afficher tous les choix possibles même si un texte est déjà présent.
+     */
+    private static class NoFilterAdapter extends ArrayAdapter<String> {
+        private final String[] items;
+
+        public NoFilterAdapter(Context context, int resource, String[] objects) {
+            super(context, resource, objects);
+            this.items = objects;
+        }
+
+        @NonNull
+        @Override
+        public Filter getFilter() {
+            return new Filter() {
+                @Override
+                protected FilterResults performFiltering(CharSequence constraint) {
+                    FilterResults results = new FilterResults();
+                    results.values = items;
+                    results.count = items.length;
+                    return results;
+                }
+
+                @Override
+                protected void publishResults(CharSequence constraint, FilterResults results) {
+                    notifyDataSetChanged();
+                }
+            };
+        }
     }
 }

@@ -9,6 +9,9 @@ import com.google.ai.client.generativeai.type.GenerateContentResponse;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -24,7 +27,8 @@ import okhttp3.Response;
 
 public class GeminiHelper {
     // For Gemini (OCR)
-    private final GenerativeModelFutures geminiModel;
+    private final List<GenerativeModelFutures> geminiModels = new java.util.ArrayList<>();
+    private int currentKeyIndex = 0;
     private static final String GEMINI_MODEL_NAME = "gemini-2.5-flash";
 
     // For Groq (Synthesis)
@@ -33,11 +37,18 @@ public class GeminiHelper {
     private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
     private static final String GROQ_MODEL_TEXT = "llama-3.3-70b-versatile";
 
-    public GeminiHelper(String geminiApiKey, String groqApiKey) {
-        // Initialize Gemini with the user's preferred model name
-        GenerativeModel gm = new GenerativeModel(GEMINI_MODEL_NAME, geminiApiKey);
-        this.geminiModel = GenerativeModelFutures.from(gm);
-
+    public GeminiHelper(String geminiApiKeys, String groqApiKey) {
+        // Initialize Gemini with multiple keys for rotation
+        if (geminiApiKeys != null && !geminiApiKeys.isEmpty()) {
+            String[] keys = geminiApiKeys.split(",");
+            for (String key : keys) {
+                if (!key.trim().isEmpty()) {
+                    GenerativeModel gm = new GenerativeModel(GEMINI_MODEL_NAME, key.trim());
+                    geminiModels.add(GenerativeModelFutures.from(gm));
+                }
+            }
+        }
+        
         // Initialize Groq
         this.groqApiKey = groqApiKey;
         this.groqClient = new OkHttpClient.Builder()
@@ -48,9 +59,22 @@ public class GeminiHelper {
     }
 
     /**
-     * OCR using Gemini optimized for handwriting.
+     * Get the next model in rotation
+     */
+    private GenerativeModelFutures getNextModel() {
+        if (geminiModels.isEmpty()) return null;
+        GenerativeModelFutures model = geminiModels.get(currentKeyIndex);
+        currentKeyIndex = (currentKeyIndex + 1) % geminiModels.size();
+        return model;
+    }
+
+    /**
+     * OCR using Gemini with key rotation support
      */
     public ListenableFuture<GenerateContentResponse> extractAndCleanText(Bitmap bitmap) {
+        GenerativeModelFutures model = getNextModel();
+        if (model == null) return null;
+
         String prompt = "Tu es un expert en OCR (Reconnaissance Optique de Caractères) et en traitement de documents. " +
                 "Ton objectif est d'extraire le texte de cette image (notes manuscrites ou imprimées), de le nettoyer et de le reformuler de manière structurée.\n\n" +
                 "INSTRUCTIONS :\n" +
@@ -66,12 +90,60 @@ public class GeminiHelper {
                 .addText(prompt)
                 .build();
 
-        return geminiModel.generateContent(content);
+        return model.generateContent(content);
+    }
+
+    /**
+     * OCR using Gemini with a specific index (for retries with different keys)
+     */
+    public ListenableFuture<GenerateContentResponse> extractWithSpecificKey(Bitmap bitmap, int keyIndex) {
+        if (geminiModels.isEmpty() || keyIndex >= geminiModels.size()) return null;
+        GenerativeModelFutures model = geminiModels.get(keyIndex);
+
+        Content content = new Content.Builder()
+                .addImage(bitmap)
+                .addText("Tu es un expert en OCR. Extrais le texte de cette image de manière structurée. Si illisible, renvoie [ERREUR: TEXTE ILLISIBLE].")
+                .build();
+
+        return model.generateContent(content);
+    }
+
+    public int getApiKeyCount() {
+        return geminiModels.size();
     }
 
     /**
      * Synthesis using Groq for better performance (speed).
      */
+    /**
+     * Nettoyage rapide du texte OCR via Groq.
+     */
+    public ListenableFuture<String> cleanOcrWithGroq(String rawText) {
+        SettableFuture<String> settableFuture = SettableFuture.create();
+        JSONObject json = new JSONObject();
+        try {
+            json.put("model", GROQ_MODEL_TEXT);
+            JSONArray messages = new JSONArray();
+
+            JSONObject systemMessage = new JSONObject();
+            systemMessage.put("role", "system");
+            systemMessage.put("content", "Tu es un expert en correction d'OCR. Ta mission est de corriger les fautes de frappe et les erreurs de lecture (lettres confondues, chiffres à la place de lettres) dans le texte fourni. Le texte est en FRANÇAIS. Ne change pas le sens. Si le texte est du charabia total, essaie quand même de deviner les mots français les plus proches. Renvoie UNIQUEMENT le texte corrigé.");
+
+            JSONObject userMessage = new JSONObject();
+            userMessage.put("role", "user");
+            userMessage.put("content", "Texte à corriger :\n" + rawText);
+
+            messages.put(systemMessage);
+            messages.put(userMessage);
+            json.put("messages", messages);
+        } catch (Exception e) {
+            settableFuture.setException(e);
+            return settableFuture;
+        }
+        sendGroqRequest(json, settableFuture);
+        return settableFuture;
+    }
+
     public ListenableFuture<String> synthesizeCourse(String fullText) {
         SettableFuture<String> settableFuture = SettableFuture.create();
 

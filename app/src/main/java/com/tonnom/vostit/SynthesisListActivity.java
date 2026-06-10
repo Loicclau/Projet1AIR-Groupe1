@@ -194,7 +194,20 @@ public class SynthesisListActivity extends AppCompatActivity {
             Synthesis s = syntheses.get(position);
             holder.tvSubject.setText(s.getSubject());
             holder.tvDate.setText(dateFormat.format(new Date(s.getTimestamp())));
-            holder.tvPreview.setText(s.getContent());
+
+            // Afficher le badge si c'est la spécialité favorite ET l'année correspondante
+            boolean isFavorite = (favoriteSpecialty != null && favoriteSpecialty.equals(s.getSpecialty())) &&
+                                (favoriteYear != null && s.getYear() != null && s.getYear().contains(favoriteYear));
+            
+            // LOGIQUE DEMANDÉE : Cacher le résumé pour les spé/années qui ne correspondent pas à l'utilisateur
+            if (isFavorite) {
+                holder.tvPreview.setVisibility(View.VISIBLE);
+                holder.tvPreview.setText(s.getContent());
+                holder.tvBadgeFavorite.setVisibility(View.VISIBLE);
+            } else {
+                holder.tvPreview.setVisibility(View.GONE);
+                holder.tvBadgeFavorite.setVisibility(View.GONE);
+            }
 
             if (s.getYear() != null) {
                 holder.tvInfo.setVisibility(View.VISIBLE);
@@ -202,11 +215,6 @@ public class SynthesisListActivity extends AppCompatActivity {
             } else {
                 holder.tvInfo.setVisibility(View.GONE);
             }
-
-            // Afficher le badge si c'est la spécialité favorite
-            boolean isFavorite = (favoriteSpecialty != null && favoriteSpecialty.equals(s.getSpecialty())) && 
-                                (favoriteYear != null && s.getYear() != null && s.getYear().contains(favoriteYear));
-            holder.tvBadgeFavorite.setVisibility(isFavorite ? View.VISIBLE : View.GONE);
 
             holder.itemView.setOnClickListener(v -> listener.onItemClick(s));
         }

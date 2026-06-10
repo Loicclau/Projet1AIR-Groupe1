@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
             sessionManager = new SessionManager(this);
             cloudSyncHelper = new CloudSyncHelper(this);
             // Utilisation hybride : Gemini pour OCR, Groq pour Synthèse
-            geminiHelper = new GeminiHelper(BuildConfig.GEMINI_API_KEY, BuildConfig.GROQ_API_KEY);
+            geminiHelper = new GeminiHelper(BuildConfig.GEMINI_API_KEYS, BuildConfig.GROQ_API_KEY);
 
             selectedSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
             selectedSpecialty = getIntent().getStringExtra("SELECTED_SPECIALTY");
@@ -432,7 +432,7 @@ public class MainActivity extends AppCompatActivity {
     private void performSynthesis(String text) {
         if (geminiHelper == null) return;
         
-        runOnUiThread(() -> Toast.makeText(this, "Génération de la synthèse (via Groq)...", Toast.LENGTH_SHORT).show());
+        runOnUiThread(() -> Toast.makeText(this, "Génération de la synthèse...", Toast.LENGTH_SHORT).show());
         
         ListenableFuture<String> future = geminiHelper.synthesizeCourse(text);
         Futures.addCallback(future, new FutureCallback<String>() {
