@@ -28,4 +28,7 @@
     <string name="ocr_optimization_desc">Vérifiez et modifiez le texte si nécessaire avant de l\'ajouter à votre note.</string>
     <string name="cancel">Annuler</string>
     <string name="add_to_note">Ajouter à la note</string>
+    <string name="ocr_error_title">Problème d\'OCR</string>
+    <string name="ocr_error_message">Désolé, nous rencontrons un problème avec la reconnaissance manuscrite. Veuillez saisir vos notes manuellement cette fois-ci.</string>
+    <string name="ok">OK</string>
 </resources>

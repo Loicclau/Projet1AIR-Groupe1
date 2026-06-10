@@ -241,7 +241,7 @@ public class AddNoteActivity extends AppCompatActivity {
                         } else {
                             runOnUiThread(() -> {
                                 hideLoading();
-                                Toast.makeText(AddNoteActivity.this, "Impossible d'extraire du texte lisible.", Toast.LENGTH_LONG).show();
+                                showOCRErrorDialog(path);
                             });
                         }
                     }
@@ -255,7 +255,7 @@ public class AddNoteActivity extends AppCompatActivity {
                     if (t.getMessage() != null && t.getMessage().contains("404")) {
                         runOnUiThread(() -> {
                             hideLoading();
-                            Toast.makeText(AddNoteActivity.this, "Erreur 404 Gemini : Modèle non trouvé. Vérifiez la configuration.", Toast.LENGTH_LONG).show();
+                            showOCRErrorDialog(path);
                         });
                         return; // Inutile de réessayer les autres clés si le nom du modèle est faux
                     }
@@ -266,12 +266,25 @@ public class AddNoteActivity extends AppCompatActivity {
                     } else {
                         runOnUiThread(() -> {
                             hideLoading();
-                            Toast.makeText(AddNoteActivity.this, "Services Gemini indisponibles.", Toast.LENGTH_LONG).show();
+                            showOCRErrorDialog(path);
                         });
                     }
                 }
             }, executor);
         });
+    }
+
+    private void showOCRErrorDialog(String originalPath) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.ocr_error_title)
+                .setMessage(R.string.ocr_error_message)
+                .setPositiveButton(R.string.ok, (dialog, which) -> {
+                    // On ajoute quand même l'image pour que l'utilisateur puisse la voir en écrivant
+                    photoPaths.add(originalPath);
+                    photoAdapter.notifyDataSetChanged();
+                    recyclerPhotos.setVisibility(View.VISIBLE);
+                })
+                .show();
     }
 
 
