@@ -9,6 +9,10 @@
         android:icon="@drawable/ic_synthesis"
         android:title="Synthèses" />
     <item
+        android:id="@+id/nav_qcm"
+        android:icon="@drawable/ic_qcm"
+        android:title="QCM" />
+    <item
         android:id="@+id/nav_profile"
         android:icon="@android:drawable/ic_menu_myplaces"
         android:title="Profil" />

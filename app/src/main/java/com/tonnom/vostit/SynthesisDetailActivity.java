@@ -26,18 +26,20 @@ import java.util.concurrent.Executors;
 
 public class SynthesisDetailActivity extends AppCompatActivity {
 
-    private int synthesisId;
+    private String subject;
     private Synthesis currentSynthesis;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private View loadingOverlay;
     private TextView tvContent;
+    private com.tonnom.vostit.utils.CloudSyncHelper cloudSyncHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_synthesis_detail);
 
-        synthesisId = getIntent().getIntExtra("SYNTHESIS_ID", -1);
+        subject = getIntent().getStringExtra("SUBJECT");
+        cloudSyncHelper = new com.tonnom.vostit.utils.CloudSyncHelper(this);
 
         Toolbar toolbar = findViewById(R.id.toolbar_detail);
         setSupportActionBar(toolbar);
@@ -57,14 +59,15 @@ public class SynthesisDetailActivity extends AppCompatActivity {
 
     private void loadSynthesis() {
         showLoading(true);
-        executor.execute(() -> {
-            currentSynthesis = NoteDatabase.getInstance(this).synthesisDao().getById(synthesisId);
+        cloudSyncHelper.listenToSynthesis(subject, synthesis -> {
             runOnUiThread(() -> {
                 showLoading(false);
-                if (currentSynthesis != null) {
+                if (synthesis != null) {
+                    currentSynthesis = synthesis;
                     displaySynthesis();
                 } else {
-                    Toast.makeText(this, "Synthèse introuvable", Toast.LENGTH_SHORT).show();
+                    // Si elle n'existe plus ou a été supprimée
+                    Toast.makeText(this, "La synthèse n'est plus disponible", Toast.LENGTH_SHORT).show();
                     finish();
                 }
             });
@@ -115,13 +118,23 @@ public class SynthesisDetailActivity extends AppCompatActivity {
 
     private void deleteSynthesis() {
         showLoading(true);
-        executor.execute(() -> {
-            NoteDatabase.getInstance(this).synthesisDao().deleteById(synthesisId);
-            runOnUiThread(() -> {
-                showLoading(false);
-                Toast.makeText(this, "Synthèse supprimée", Toast.LENGTH_SHORT).show();
-                finish();
-            });
+        cloudSyncHelper.deleteSynthesis(subject, new com.tonnom.vostit.utils.CloudSyncHelper.SyncCallback() {
+            @Override
+            public void onSuccess() {
+                runOnUiThread(() -> {
+                    showLoading(false);
+                    Toast.makeText(SynthesisDetailActivity.this, "Synthèse supprimée", Toast.LENGTH_SHORT).show();
+                    finish();
+                });
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                runOnUiThread(() -> {
+                    showLoading(false);
+                    Toast.makeText(SynthesisDetailActivity.this, "Erreur lors de la suppression", Toast.LENGTH_SHORT).show();
+                });
+            }
         });
     }
 

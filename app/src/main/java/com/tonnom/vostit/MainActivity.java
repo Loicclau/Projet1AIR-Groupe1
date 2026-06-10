@@ -194,11 +194,8 @@ public class MainActivity extends AppCompatActivity {
         
         executor.execute(() -> {
             long latestNoteTs = NoteDatabase.getInstance(this).noteDao().getLatestNoteTimestampForSubject(selectedSubject);
-            Synthesis latestLocal = NoteDatabase.getInstance(this).synthesisDao().getLatestForSubject(selectedSubject);
 
-            cloudSyncHelper.fetchLatestSynthesis(selectedSubject, cloudSynthesis -> {
-                Synthesis bestSynthesis = cloudSynthesis != null ? cloudSynthesis : latestLocal;
-                
+            cloudSyncHelper.fetchLatestSynthesis(selectedSubject, bestSynthesis -> {
                 runOnUiThread(() -> {
                     if (btnSynthesize instanceof ExtendedFloatingActionButton) {
                         ExtendedFloatingActionButton fab = (ExtendedFloatingActionButton) btnSynthesize;
@@ -314,28 +311,18 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            // 1. Vérifier s'il existe une synthèse (Cloud ou Locale)
-            Synthesis latestLocal = NoteDatabase.getInstance(this).synthesisDao().getLatestForSubject(selectedSubject);
+            // 1. Vérifier s'il existe une synthèse sur le Cloud
             long latestNoteTs = NoteDatabase.getInstance(this).noteDao().getLatestNoteTimestampForSubject(selectedSubject);
 
             cloudSyncHelper.fetchLatestSynthesis(selectedSubject, cloudSynthesis -> {
                 executor.execute(() -> {
-                    Synthesis synthesisToUse = cloudSynthesis != null ? cloudSynthesis : latestLocal;
-
-                    if (synthesisToUse != null && synthesisToUse.getTimestamp() >= latestNoteTs) {
+                    if (cloudSynthesis != null && cloudSynthesis.getTimestamp() >= latestNoteTs) {
                         // La synthèse est à jour, on l'affiche directement
-                        if (cloudSynthesis != null && (latestLocal == null || cloudSynthesis.getTimestamp() > latestLocal.getTimestamp())) {
-                            NoteDatabase.getInstance(this).synthesisDao().deleteBySubject(selectedSubject);
-                            NoteDatabase.getInstance(this).synthesisDao().insert(cloudSynthesis);
-                        }
-                        
-                        final Synthesis finalS = NoteDatabase.getInstance(this).synthesisDao().getLatestForSubject(selectedSubject);
-
                         runOnUiThread(() -> {
                             loadingOverlay.setVisibility(View.GONE);
                             btnSynthesize.setEnabled(true);
                             Intent intent = new Intent(MainActivity.this, SynthesisDetailActivity.class);
-                            intent.putExtra("SYNTHESIS_ID", finalS.getId());
+                            intent.putExtra("SUBJECT", selectedSubject);
                             startActivity(intent);
                         });
                     } else {
@@ -453,19 +440,15 @@ public class MainActivity extends AppCompatActivity {
                         newSynthesis.setSpecialty(selectedSpecialty);
                         newSynthesis.setYear(selectedYear);
                         
-                        // 1. Partager sur le Cloud pour les autres
+                        // 1. Partager sur le Cloud (Désormais UNIQUE stockage)
                         cloudSyncHelper.uploadSynthesis(newSynthesis);
                         
-                        // 2. Sauvegarder localement
-                        NoteDatabase.getInstance(MainActivity.this).synthesisDao().deleteBySubject(selectedSubject);
-                        long id = NoteDatabase.getInstance(MainActivity.this).synthesisDao().insert(newSynthesis);
-
-                        // 3. Incrémenter le quota
+                        // 2. Incrémenter le quota
                         sessionManager.incrementDailySynthesisCount();
 
                         runOnUiThread(() -> {
                             Intent intent = new Intent(MainActivity.this, SynthesisDetailActivity.class);
-                            intent.putExtra("SYNTHESIS_ID", (int) id);
+                            intent.putExtra("SUBJECT", selectedSubject);
                             startActivity(intent);
                         });
                     });

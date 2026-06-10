@@ -37,6 +37,7 @@ public class SynthesisListActivity extends AppCompatActivity {
     private View emptyState;
     private String filterSubject;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private com.tonnom.vostit.utils.CloudSyncHelper cloudSyncHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,8 +45,13 @@ public class SynthesisListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_synthesis_list);
 
         filterSubject = getIntent().getStringExtra("SELECTED_SUBJECT");
+        cloudSyncHelper = new com.tonnom.vostit.utils.CloudSyncHelper(this);
 
-        findViewById(R.id.btn_refresh).setOnClickListener(v -> syncWithCloud());
+        findViewById(R.id.btn_refresh).setOnClickListener(v -> {
+            Toast.makeText(this, "Mise à jour...", Toast.LENGTH_SHORT).show();
+            // Le listener s'occupe de la mise à jour temps réel, 
+            // le bouton refresh peut servir à forcer visuellement si besoin.
+        });
 
         RecyclerView recyclerView = findViewById(R.id.recycler_syntheses);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -55,60 +61,28 @@ public class SynthesisListActivity extends AppCompatActivity {
 
         emptyState = findViewById(R.id.layout_empty_syntheses);
 
-        findViewById(R.id.btn_refresh).setOnClickListener(v -> syncWithCloud());
-
-        loadSyntheses();
         setupBottomNavigation();
+        startCloudListening();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        loadSyntheses();
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         if (bottomNav != null) {
             bottomNav.setSelectedItemId(R.id.nav_syntheses);
         }
     }
 
-    private void setupBottomNavigation() {
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
-        bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.nav_subjects) {
-                Intent intent = new Intent(this, SubjectSelectionActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-                return true;
-            } else if (id == R.id.nav_profile) {
-                Intent intent = new Intent(this, ProfileActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-                return true;
-            } else if (id == R.id.nav_syntheses) {
-                return true;
-            }
-            return false;
-        });
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        filterSubject = intent.getStringExtra("SELECTED_SUBJECT");
-        loadSyntheses();
-    }
-
-    private void loadSyntheses() {
-        executor.execute(() -> {
-            List<Synthesis> list;
+    private void startCloudListening() {
+        cloudSyncHelper.startListeningForSyntheses(cloudList -> {
+            List<Synthesis> list = new ArrayList<>();
             if (filterSubject != null) {
-                list = NoteDatabase.getInstance(this).synthesisDao().getAllForSubject(filterSubject);
+                for (Synthesis s : cloudList) {
+                    if (filterSubject.equals(s.getSubject())) list.add(s);
+                }
             } else {
-                list = NoteDatabase.getInstance(this).synthesisDao().getAllSyntheses();
+                list.addAll(cloudList);
             }
 
             // Trier par favoris
@@ -134,28 +108,47 @@ public class SynthesisListActivity extends AppCompatActivity {
         });
     }
 
-    private void showSynthesisDetails(Synthesis synthesis) {
-        Intent intent = new Intent(this, SynthesisDetailActivity.class);
-        intent.putExtra("SYNTHESIS_ID", synthesis.getId());
-        startActivity(intent);
+    private void setupBottomNavigation() {
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_subjects) {
+                Intent intent = new Intent(this, SubjectSelectionActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                return true;
+            } else if (id == R.id.nav_profile) {
+                Intent intent = new Intent(this, ProfileActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                return true;
+            } else if (id == R.id.nav_qcm) {
+                Intent intent = new Intent(this, QcmSetupActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                return true;
+            } else if (id == R.id.nav_syntheses) {
+                return true;
+            }
+            return false;
+        });
     }
 
-    private void syncWithCloud() {
-        Toast.makeText(this, "Synchronisation...", Toast.LENGTH_SHORT).show();
-        CloudSyncHelper cloudSyncHelper = new CloudSyncHelper(this);
-        cloudSyncHelper.fetchAllSyntheses(cloudList -> {
-            executor.execute(() -> {
-                for (Synthesis s : cloudList) {
-                    // Sauvegarder ou mettre à jour localement
-                    NoteDatabase.getInstance(this).synthesisDao().deleteBySubject(s.getSubject());
-                    NoteDatabase.getInstance(this).synthesisDao().insert(s);
-                }
-                runOnUiThread(() -> {
-                    loadSyntheses();
-                    Toast.makeText(this, "Synthèses à jour", Toast.LENGTH_SHORT).show();
-                });
-            });
-        });
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        filterSubject = intent.getStringExtra("SELECTED_SUBJECT");
+        // Le listener re-déclenchera automatiquement ou on peut forcer un refresh
+    }
+
+    private void showSynthesisDetails(Synthesis synthesis) {
+        Intent intent = new Intent(this, SynthesisDetailActivity.class);
+        intent.putExtra("SUBJECT", synthesis.getSubject());
+        startActivity(intent);
     }
 
     private static class SynthesisAdapter extends RecyclerView.Adapter<SynthesisAdapter.ViewHolder> {

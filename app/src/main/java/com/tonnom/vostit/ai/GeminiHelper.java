@@ -121,8 +121,6 @@ public class GeminiHelper {
      * Synthesis using Groq for better performance (speed).
      */
     public ListenableFuture<String> synthesizeCourse(String fullText) {
-        SettableFuture<String> settableFuture = SettableFuture.create();
-
         String prompt = "Tu es un assistant de mise en forme pédagogique expert. Ton rôle est de réorganiser et synthétiser des notes de cours existantes pour en faire un résumé d'étude parfait.\n\n" +
                 "RÈGLES STRICTES :\n" +
                 "- Utilise UNIQUEMENT les informations présentes dans les notes fournies.\n" +
@@ -139,6 +137,15 @@ public class GeminiHelper {
                 "## Définitions clés\n" +
                 "## Concepts à retenir\n";
 
+        return generateWithGroq(prompt, "Tu es un assistant pédagogique expert qui crée des synthèses claires et structurées à partir de notes de cours.");
+    }
+
+    /**
+     * Generic Groq request
+     */
+    public ListenableFuture<String> generateWithGroq(String prompt, String systemRole) {
+        SettableFuture<String> settableFuture = SettableFuture.create();
+
         JSONObject json = new JSONObject();
         try {
             json.put("model", GROQ_MODEL_TEXT);
@@ -146,7 +153,7 @@ public class GeminiHelper {
 
             JSONObject systemMessage = new JSONObject();
             systemMessage.put("role", "system");
-            systemMessage.put("content", "Tu es un assistant pédagogique expert qui crée des synthèses claires et structurées à partir de notes de cours.");
+            systemMessage.put("content", systemRole);
 
             JSONObject userMessage = new JSONObject();
             userMessage.put("role", "user");

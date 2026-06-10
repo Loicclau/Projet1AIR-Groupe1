@@ -69,6 +69,12 @@ public class SubjectSelectionActivity extends AppCompatActivity {
                 startActivity(intent);
                 overridePendingTransition(0, 0);
                 return true;
+            } else if (id == R.id.nav_qcm) {
+                Intent intent = new Intent(this, QcmSetupActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                return true;
             } else if (id == R.id.nav_subjects) {
                 return true;
             }
