@@ -35,16 +35,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.ai.client.generativeai.type.GenerateContentResponse;
-import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.text.Text;
-import com.google.mlkit.vision.text.TextRecognition;
-import com.google.mlkit.vision.text.TextRecognizer;
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.text.Text;
-import com.google.mlkit.vision.text.TextRecognition;
-import com.google.mlkit.vision.text.TextRecognizer;
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -202,84 +192,36 @@ public class AddNoteActivity extends AppCompatActivity {
     }
 
     private void processImageForOCR(String path) {
-        // Étape 1 : ML Kit (Rapide/Gratuit)
-        runOnUiThread(() -> showLoading("Analyse locale en cours..."));
-        
-        executor.execute(() -> {
-            Bitmap bitmap = loadResizedBitmap(path, 1024);
-            if (bitmap == null) {
-                runOnUiThread(() -> {
-                    hideLoading();
-                    Toast.makeText(this, "Erreur de chargement", Toast.LENGTH_SHORT).show();
-                });
-                return;
-            }
-
-            InputImage image = InputImage.fromBitmap(bitmap, 0);
-            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).process(image)
-                .addOnSuccessListener(visionText -> {
-                    String rawText = visionText.getText();
-                    
-                    // Nouveaux tests de validation assouplis
-                    boolean isDicoOk = checkTextQualityStrict(rawText);
-                    boolean isRatioOk = isRatioClean(rawText, 0.65f); // Seuil à 65%
-                    boolean isConfidenceOk = isConfidenceHigh(visionText, 0.70f); // Seuil à 70%
-
-                    // Si l'un des tests est concluant (Dictionnaire OU Ratio Lettres OU Confiance Google)
-                    if (isDicoOk || isRatioOk || isConfidenceOk) {
-                        runOnUiThread(() -> {
-                            hideLoading();
-                            showOCRPreviewDialog(rawText, path);
-                        });
-                    } else {
-                        // Étape 2 : Si tout échoue -> IA Gemini
-                        processImageWithGemini(path, 0, rawText);
-                    }
-                })
-                .addOnFailureListener(e -> processImageWithGemini(path, 0, null));
-        });
+        // Gemini uniquement pour OCR + Nettoyage + Structuration
+        processImageWithGemini(path, 0);
     }
 
-    /**
-     * Test de ratio lettres/total (seuil à 65%)
-     */
-    private boolean isRatioClean(String text, float threshold) {
-        if (text == null || text.isEmpty()) return false;
-        int letters = 0;
-        for (char c : text.toCharArray()) {
-            if (Character.isLetter(c)) letters++;
-        }
-        return ((float) letters / text.length()) >= threshold;
-    }
-
-    /**
-     * Test de confiance simplifiée (puisque getConfidence() n'est pas dispo sur TextBlock directement)
-     * On se base sur la structure pour confirmer si le texte est propre.
-     */
-    private boolean isConfidenceHigh(Text visionText, float threshold) {
-        // Comme getConfidence() peut varier selon la version de ML Kit, 
-        // on valide que le texte n'est pas vide et possède une structure cohérente.
-        return visionText.getTextBlocks().size() > 0 && visionText.getText().length() > 20;
-    }
-
-    private void processImageWithGemini(String path, int attempt, String rawMLKitText) {
+    private void processImageWithGemini(String path, int attempt) {
         int keyCount = geminiHelper.getApiKeyCount();
         String loadingMsg = (attempt > 0) ? 
             "Réessaie avec une autre clé IA (" + (attempt + 1) + "/" + keyCount + ")..." : 
-            "Analyse IA du manuscrit...";
+            "Analyse IA du manuscrit avec Gemini...";
             
         runOnUiThread(() -> showLoading(loadingMsg));
 
         executor.execute(() -> {
             Bitmap bitmap = loadResizedBitmap(path, 1024);
-            if (bitmap == null) return;
+            if (bitmap == null) {
+                runOnUiThread(() -> {
+                    hideLoading();
+                    Toast.makeText(this, "Erreur de chargement de l'image", Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
 
             // On utilise une clé spécifique basée sur le numéro de tentative pour la rotation
             ListenableFuture<GenerateContentResponse> future = geminiHelper.extractWithSpecificKey(bitmap, attempt);
             
             if (future == null) {
-                // Si on a épuisé les clés
-                fallbackToGroqCleanup(rawMLKitText, path, "Toutes les clés IA ont échoué.");
+                runOnUiThread(() -> {
+                    hideLoading();
+                    Toast.makeText(this, "Toutes les clés Gemini ont échoué.", Toast.LENGTH_LONG).show();
+                });
                 return;
             }
 
@@ -287,17 +229,20 @@ public class AddNoteActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(GenerateContentResponse result) {
                     String geminiText = result.getText();
-                    if (checkTextQuality(geminiText)) {
+                    if (geminiText != null && !geminiText.trim().isEmpty() && !geminiText.contains("[ERREUR: TEXTE ILLISIBLE]")) {
                         runOnUiThread(() -> {
                             hideLoading();
                             showOCRPreviewDialog(geminiText, path);
                         });
                     } else {
-                        // Qualité insuffisante, on essaie la clé suivante
+                        // Qualité insuffisante ou texte illisible, on essaie la clé suivante
                         if (attempt < keyCount - 1) {
-                            processImageWithGemini(path, attempt + 1, rawMLKitText);
+                            processImageWithGemini(path, attempt + 1);
                         } else {
-                            fallbackToGroqCleanup(rawMLKitText, path, "Qualité IA insuffisante.");
+                            runOnUiThread(() -> {
+                                hideLoading();
+                                Toast.makeText(AddNoteActivity.this, "Impossible d'extraire du texte lisible.", Toast.LENGTH_LONG).show();
+                            });
                         }
                     }
                 }
@@ -306,76 +251,27 @@ public class AddNoteActivity extends AppCompatActivity {
                 public void onFailure(@NonNull Throwable t) {
                     Log.e("AddNoteActivity", "Erreur Gemini clé " + attempt, t);
                     
-                    // En cas d'erreur sur une clé (quota, etc.), on passe à la suivante
+                    // Gestion spécifique de l'erreur 404 (modèle introuvable)
+                    if (t.getMessage() != null && t.getMessage().contains("404")) {
+                        runOnUiThread(() -> {
+                            hideLoading();
+                            Toast.makeText(AddNoteActivity.this, "Erreur 404 Gemini : Modèle non trouvé. Vérifiez la configuration.", Toast.LENGTH_LONG).show();
+                        });
+                        return; // Inutile de réessayer les autres clés si le nom du modèle est faux
+                    }
+
+                    // En cas d'autre erreur sur une clé (quota, etc.), on passe à la suivante
                     if (attempt < keyCount - 1) {
-                        processImageWithGemini(path, attempt + 1, rawMLKitText);
+                        processImageWithGemini(path, attempt + 1);
                     } else {
-                        // Étape finale : Toutes les clés Gemini ont échoué -> Groq nettoie le ML Kit brut
-                        fallbackToGroqCleanup(rawMLKitText, path, "Services IA indisponibles.");
+                        runOnUiThread(() -> {
+                            hideLoading();
+                            Toast.makeText(AddNoteActivity.this, "Services Gemini indisponibles.", Toast.LENGTH_LONG).show();
+                        });
                     }
                 }
             }, executor);
         });
-    }
-
-    private void fallbackToGroqCleanup(String rawText, String path, String reason) {
-        if (rawText == null || rawText.trim().isEmpty()) {
-            runOnUiThread(() -> {
-                hideLoading();
-                Toast.makeText(this, reason + " Impossible de lire le texte.", Toast.LENGTH_LONG).show();
-            });
-            return;
-        }
-
-        runOnUiThread(() -> tvLoadingMessage.setText("Récupération des données..."));
-        
-        ListenableFuture<String> future = geminiHelper.cleanOcrWithGroq(rawText);
-        Futures.addCallback(future, new FutureCallback<String>() {
-            @Override
-            public void onSuccess(String cleanedText) {
-                runOnUiThread(() -> {
-                    hideLoading();
-                    // On affiche le résultat de ML Kit nettoyé par Groq quoi qu'il arrive (Zéro erreur)
-                    showOCRPreviewDialog(cleanedText, path);
-                });
-            }
-
-            @Override
-            public void onFailure(@NonNull Throwable t) {
-                runOnUiThread(() -> {
-                    hideLoading();
-                    // Ultime recours : texte ML Kit brut
-                    showOCRPreviewDialog(rawText, path);
-                });
-            }
-        }, executor);
-    }
-
-
-
-    /**
-     * Seuil strict pour ML Kit seul (pour valider le texte imprimé)
-     */
-    private boolean checkTextQualityStrict(String text) {
-        if (text == null || text.trim().isEmpty()) return false;
-        String[] commonFrenchWords = {"le", "la", "les", "des", "une", "est", "dans", "pour", "avec", "sur", "plus", "fait", "tout", "cours"};
-        String lowerText = text.toLowerCase();
-        int matchCount = 0;
-        for (String word : commonFrenchWords) {
-            if (lowerText.contains(" " + word + " ") || lowerText.startsWith(word + " ")) matchCount++;
-        }
-        return matchCount >= 4;
-    }
-
-    private boolean checkTextQuality(String text) {
-        if (text == null || text.trim().isEmpty() || text.contains("[ERREUR: TEXTE ILLISIBLE]")) return false;
-        String[] commonFrenchWords = {"le", "la", "les", "des", "une", "est", "dans", "pour", "avec", "sur"};
-        String lowerText = text.toLowerCase();
-        int matchCount = 0;
-        for (String word : commonFrenchWords) {
-            if (lowerText.contains(" " + word + " ") || lowerText.startsWith(word + " ")) matchCount++;
-        }
-        return matchCount >= 1;
     }
 
 

@@ -3,6 +3,7 @@ import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
+    // alias(libs.plugins.google.services) // Désactivé pour éviter "Duplicate resources" avec les resValue ci-dessous
 }
 
 val localProperties = Properties().apply {
@@ -14,16 +15,12 @@ val localProperties = Properties().apply {
 
 android {
     namespace = "com.tonnom.vostit"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.tonnom.vostit"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -31,8 +28,11 @@ android {
 
         // Récupération des clés depuis local.properties
         val keyList = mutableListOf<String>()
-        for (i in 1..5) {
-            keyList.add(localProperties.getProperty("GEMINI_API_KEY$i") ?: "")
+        for (i in 1..2) {
+            val key = localProperties.getProperty("GEMINI_API_KEY$i")
+            if (!key.isNullOrEmpty()) {
+                keyList.add(key)
+            }
         }
         val joinedKeys = keyList.joinToString(",")
         buildConfigField("String", "GEMINI_API_KEYS", "\"$joinedKeys\"")
@@ -101,17 +101,17 @@ dependencies {
     implementation(libs.okhttp)
 
     // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
     implementation("com.google.firebase:firebase-auth")
 
+    // Play Services Base
+    implementation("com.google.android.gms:play-services-base:18.5.0")
+
     // Room (SQLite)
     implementation("androidx.room:room-runtime:2.6.1")
     annotationProcessor("androidx.room:room-compiler:2.6.1")
-
-    // ML Kit Text Recognition (On-device OCR)
-    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
 
     // Google AI SDK for Android (Optimized for Android)
     implementation(libs.generativeai)

@@ -26,10 +26,10 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class GeminiHelper {
-    // For Gemini (OCR)
+    // For Gemini (OCR + Structuration)
     private final List<GenerativeModelFutures> geminiModels = new java.util.ArrayList<>();
     private int currentKeyIndex = 0;
-    private static final String GEMINI_MODEL_NAME = "gemini-2.5-flash";
+    private static final String GEMINI_MODEL_NAME = "gemini-2.5-flash"; // Gemini 1.5 Flash for OCR
 
     // For Groq (Synthesis)
     private final String groqApiKey;
@@ -69,25 +69,30 @@ public class GeminiHelper {
     }
 
     /**
+     * Gemini Prompt for OCR, Cleanup and Structuring
+     */
+    private String getOcrPrompt() {
+        return "Tu es un expert en OCR (Reconnaissance Optique de Caractères) et en traitement de documents. " +
+                "Ton objectif est d'extraire le texte de cette image (notes manuscrites ou imprimées), de le nettoyer et de le reformuler de manière structurée.\n\n" +
+                "INSTRUCTIONS :\n" +
+                "1. EXTRACTION : Détecte et lis tout le contenu textuel de l'image avec précision.\n" +
+                "2. NETTOYAGE : Corrige les fautes d'orthographe, de grammaire et les erreurs de lecture (lettres confondues, symboles mal interprétés).\n" +
+                "3. REFORMULATION : Reformule les bribes de phrases ou les notes fragmentées en contenu fluide et cohérent tout en restant 100% fidèle au sens original.\n" +
+                "4. STRUCTURE : Organise le résultat avec du Markdown (Titres #, gras **, listes à puces -) pour une lecture claire.\n" +
+                "5. VÉRIFICATION : Si l'image ne contient aucun texte ou est totalement illisible, renvoie exactement : \"[ERREUR: TEXTE ILLISIBLE]\".\n\n" +
+                "RENVOIE UNIQUEMENT LE TEXTE TRAITÉ SANS AUCUN COMMENTAIRE PRÉLIMINAIRE OU FINAL.";
+    }
+
+    /**
      * OCR using Gemini with key rotation support
      */
     public ListenableFuture<GenerateContentResponse> extractAndCleanText(Bitmap bitmap) {
         GenerativeModelFutures model = getNextModel();
         if (model == null) return null;
 
-        String prompt = "Tu es un expert en OCR (Reconnaissance Optique de Caractères) et en traitement de documents. " +
-                "Ton objectif est d'extraire le texte de cette image (notes manuscrites ou imprimées), de le nettoyer et de le reformuler de manière structurée.\n\n" +
-                "INSTRUCTIONS :\n" +
-                "1. EXTRACTION : Lis tout le texte présent dans l'image.\n" +
-                "2. NETTOYAGE : Corrige les fautes d'orthographe, de grammaire et les erreurs courantes d'OCR (lettres confondues).\n" +
-                "3. REFORMULATION : Si le texte est fragmenté (tirets, bribes de phrases), reformule-le en paragraphes fluides ou en listes à puces claires tout en restant 100% fidèle au sens original.\n" +
-                "4. STRUCTURE : Utilise du Markdown pour structurer (Titres #, gras **, listes -).\n" +
-                "5. VÉRIFICATION : Si le texte est totalement illisible ou incohérent, renvoie exactement : \"[ERREUR: TEXTE ILLISIBLE]\".\n\n" +
-                "RENVOIE UNIQUEMENT LE TEXTE TRAITÉ SANS COMMENTAIRE.";
-
         Content content = new Content.Builder()
                 .addImage(bitmap)
-                .addText(prompt)
+                .addText(getOcrPrompt())
                 .build();
 
         return model.generateContent(content);
@@ -102,7 +107,7 @@ public class GeminiHelper {
 
         Content content = new Content.Builder()
                 .addImage(bitmap)
-                .addText("Tu es un expert en OCR. Extrais le texte de cette image de manière structurée. Si illisible, renvoie [ERREUR: TEXTE ILLISIBLE].")
+                .addText(getOcrPrompt())
                 .build();
 
         return model.generateContent(content);
@@ -115,53 +120,24 @@ public class GeminiHelper {
     /**
      * Synthesis using Groq for better performance (speed).
      */
-    /**
-     * Nettoyage rapide du texte OCR via Groq.
-     */
-    public ListenableFuture<String> cleanOcrWithGroq(String rawText) {
-        SettableFuture<String> settableFuture = SettableFuture.create();
-        JSONObject json = new JSONObject();
-        try {
-            json.put("model", GROQ_MODEL_TEXT);
-            JSONArray messages = new JSONArray();
-
-            JSONObject systemMessage = new JSONObject();
-            systemMessage.put("role", "system");
-            systemMessage.put("content", "Tu es un expert en correction d'OCR. Ta mission est de corriger les fautes de frappe et les erreurs de lecture (lettres confondues, chiffres à la place de lettres) dans le texte fourni. Le texte est en FRANÇAIS. Ne change pas le sens. Si le texte est du charabia total, essaie quand même de deviner les mots français les plus proches. Renvoie UNIQUEMENT le texte corrigé.");
-
-            JSONObject userMessage = new JSONObject();
-            userMessage.put("role", "user");
-            userMessage.put("content", "Texte à corriger :\n" + rawText);
-
-            messages.put(systemMessage);
-            messages.put(userMessage);
-            json.put("messages", messages);
-        } catch (Exception e) {
-            settableFuture.setException(e);
-            return settableFuture;
-        }
-        sendGroqRequest(json, settableFuture);
-        return settableFuture;
-    }
-
     public ListenableFuture<String> synthesizeCourse(String fullText) {
         SettableFuture<String> settableFuture = SettableFuture.create();
 
-        String prompt = "Tu es un assistant de mise en forme pédagogique. Ton rôle est de réorganiser et structurer des notes de cours existantes, PAS d'en inventer le contenu.\n\n" +
+        String prompt = "Tu es un assistant de mise en forme pédagogique expert. Ton rôle est de réorganiser et synthétiser des notes de cours existantes pour en faire un résumé d'étude parfait.\n\n" +
                 "RÈGLES STRICTES :\n" +
-                "- Utilise UNIQUEMENT les informations présentes dans les notes fournies\n" +
-                "- N'ajoute AUCUNE information, explication ou exemple qui ne vient pas des notes\n" +
+                "- Utilise UNIQUEMENT les informations présentes dans les notes fournies.\n" +
+                "- N'ajoute AUCUNE connaissance extérieure.\n" +
                 "- Fusionne les informations redondantes.\n" +
-                "- Reformule pour la clarté et la fluidité.\n\n" +
-                "Voici les notes de cours à organiser :\n\n" +
+                "- Structure de manière logique et pédagogique.\n\n" +
+                "Voici les notes de cours à transformer :\n\n" +
                 "--- DÉBUT DES NOTES ---\n" +
                 fullText + "\n" +
                 "--- FIN DES NOTES ---\n\n" +
-                "Restructure ces notes selon ce format :\n" +
+                "Produis une synthèse structurée en Markdown avec :\n" +
                 "# Résumé global du cours\n" +
-                "# Points importants\n" +
-                "# Définitions\n" +
-                "# Concepts clés à retenir\n";
+                "## Points importants (listes)\n" +
+                "## Définitions clés\n" +
+                "## Concepts à retenir\n";
 
         JSONObject json = new JSONObject();
         try {
@@ -170,7 +146,7 @@ public class GeminiHelper {
 
             JSONObject systemMessage = new JSONObject();
             systemMessage.put("role", "system");
-            systemMessage.put("content", "Tu es un assistant pédagogique expert.");
+            systemMessage.put("content", "Tu es un assistant pédagogique expert qui crée des synthèses claires et structurées à partir de notes de cours.");
 
             JSONObject userMessage = new JSONObject();
             userMessage.put("role", "user");

@@ -11,7 +11,7 @@
 ## 🛠️ Technologies utilisées
 - **Langage** : Java (Android SDK)
 - **Intelligence Artificielle** :
-    - **Gemini 2.5 Flash** : Pour l'OCR et la lecture du manuscrit.
+    - **Gemini 1.5 Flash** : Pour l'OCR et la lecture du manuscrit.
     - **Groq (Llama 3.3 70B)** : Pour la génération de synthèse.
 - **Base de données** :
     - **Room (SQLite)** 
